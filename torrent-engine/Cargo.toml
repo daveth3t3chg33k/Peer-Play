@@ -1,0 +1,45 @@
+[package]
+name = "peerplay-torrent-engine"
+version = "0.1.0"
+edition = "2021"
+description = "P2P torrent engine for PeerPlay, wrapped with UniFFI for React Native"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "peerplay_torrent_engine"
+
+[dependencies]
+# Torrent engine
+librqbit = "9.0"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# HTTP proxy server
+warp = "0.3"
+
+# UniFFI for React Native bindings
+uniffi = { version = "0.28", features = ["cli"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+anyhow = "1"
+
+# Logging
+log = "0.4"
+
+# UUID for torrent IDs
+uuid = { version = "1", features = ["v4"] }
+
+# MIME types for HTTP proxy
+mime_guess = "2"
+
+# Vendored OpenSSL for Android cross-compilation
+openssl = { version = "0.10", features = ["vendored"] }
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }

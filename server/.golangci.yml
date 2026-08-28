@@ -1,0 +1,85 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    # Default set (reliability)
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - unused
+    # Style
+    - copyloopvar
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    # Bugs
+    - bodyclose
+    - durationcheck
+    - errorlint
+    - nilerr
+    # Performance
+    - prealloc
+    # Complexity
+    - goconst
+    - gocritic
+    - unparam
+    - wastedassign
+    # Security
+    - gosec
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  govet:
+    enable-all: true
+    disable:
+      - fieldalignment
+      - shadow
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - unnamedResult
+      - exitAfterDefer
+  gosec:
+    excludes:
+      - G104  # unhandled errors on deferred close
+  goimports:
+    local-prefixes: github.com/peerplay/server
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # strconv.Atoi on query params intentionally defaults to 0 on parse failure
+    - linters:
+        - errcheck
+      source: "strconv\\.Atoi"
+    # HTTP handler response encoding failures are logged by middleware
+    - linters:
+        - errcheck
+      source: "json\\.NewEncoder"
+    - path: internal/api/
+      linters:
+        - unparam
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    - path: internal/config/
+      linters:
+        - goconst
+    - path: cmd/server/
+      linters:
+        - gocritic

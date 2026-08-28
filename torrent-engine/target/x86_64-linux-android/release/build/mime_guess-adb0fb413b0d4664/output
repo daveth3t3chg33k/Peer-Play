@@ -1,0 +1,1 @@
+cargo:rustc-env=MIME_TYPES_GENERATED_PATH=/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/build/mime_guess-adb0fb413b0d4664/out/mime_types_generated.rs

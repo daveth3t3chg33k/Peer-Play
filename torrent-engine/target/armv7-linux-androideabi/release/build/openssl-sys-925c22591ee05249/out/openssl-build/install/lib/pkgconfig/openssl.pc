@@ -1,0 +1,10 @@
+# 
+prefix=/home/kam1rah/Peer-Play/torrent-engine/target/armv7-linux-androideabi/release/build/openssl-sys-925c22591ee05249/out/openssl-build/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include 
+
+Name: OpenSSL
+Description: Secure Sockets Layer and cryptography libraries and tools
+Version: 3.6.3
+Requires: libssl libcrypto

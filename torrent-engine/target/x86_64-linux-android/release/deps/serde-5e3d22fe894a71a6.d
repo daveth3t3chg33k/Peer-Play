@@ -1,0 +1,14 @@
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/deps/serde-5e3d22fe894a71a6.d: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/build/serde-98a9a8deb3b85438/out/private.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/deps/libserde-5e3d22fe894a71a6.rlib: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/build/serde-98a9a8deb3b85438/out/private.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/deps/libserde-5e3d22fe894a71a6.rmeta: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs /home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/build/serde-98a9a8deb3b85438/out/private.rs
+
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/lib.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/integer128.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/mod.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/de.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.229/src/private/ser.rs:
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/build/serde-98a9a8deb3b85438/out/private.rs:
+
+# env-dep:OUT_DIR=/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/build/serde-98a9a8deb3b85438/out

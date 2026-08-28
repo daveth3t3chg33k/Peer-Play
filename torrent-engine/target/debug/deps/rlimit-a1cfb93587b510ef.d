@@ -1,0 +1,12 @@
+/home/kam1rah/Peer-Play/torrent-engine/target/debug/deps/rlimit-a1cfb93587b510ef.d: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/tools.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/bindings.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/unix.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/resource/mod.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/resource/generated.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/proc_limits.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/sys_limits.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/debug/deps/librlimit-a1cfb93587b510ef.rmeta: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/tools.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/bindings.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/unix.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/resource/mod.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/resource/generated.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/proc_limits.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/sys_limits.rs
+
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/lib.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/tools.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/bindings.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/unix.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/resource/mod.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/resource/generated.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/proc_limits.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/rlimit-0.11.0/src/sys_limits.rs:

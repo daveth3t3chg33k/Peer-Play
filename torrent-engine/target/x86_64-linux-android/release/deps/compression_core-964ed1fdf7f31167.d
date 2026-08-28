@@ -1,0 +1,10 @@
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/deps/compression_core-964ed1fdf7f31167.d: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/level.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/unshared.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/util.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/deps/libcompression_core-964ed1fdf7f31167.rlib: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/level.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/unshared.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/util.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/x86_64-linux-android/release/deps/libcompression_core-964ed1fdf7f31167.rmeta: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/level.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/unshared.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/util.rs
+
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/lib.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/level.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/unshared.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/compression-core-0.4.32/src/util.rs:

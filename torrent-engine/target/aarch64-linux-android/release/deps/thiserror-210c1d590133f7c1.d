@@ -1,0 +1,14 @@
+/home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/deps/thiserror-210c1d590133f7c1.d: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs /home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/build/thiserror-3a9edec3f511422a/out/private.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/deps/libthiserror-210c1d590133f7c1.rlib: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs /home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/build/thiserror-3a9edec3f511422a/out/private.rs
+
+/home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/deps/libthiserror-210c1d590133f7c1.rmeta: /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs /home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs /home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/build/thiserror-3a9edec3f511422a/out/private.rs
+
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/lib.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/aserror.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/display.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/var.rs:
+/home/kam1rah/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.20/src/private.rs:
+/home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/build/thiserror-3a9edec3f511422a/out/private.rs:
+
+# env-dep:OUT_DIR=/home/kam1rah/Peer-Play/torrent-engine/target/aarch64-linux-android/release/build/thiserror-3a9edec3f511422a/out
