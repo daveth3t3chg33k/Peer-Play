@@ -37,18 +37,11 @@ class PeerPlayApp extends StatelessWidget {
       onGenerateRoute: (settings) {
         if (settings.name == '/movie_detail') {
           final movieId = settings.arguments as String;
-          return MaterialPageRoute(
-            builder: (_) => MovieDetailScreen(movieId: movieId),
-            settings: settings,
-          );
+          return MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movieId), settings: settings);
         }
         if (settings.name == '/player') {
           final args = settings.arguments as Map<String, String>;
-          return MaterialPageRoute(
-            builder: (_) => PlayerScreen(movieId: args['movieId']!, title: args['title']!),
-            settings: settings,
-            fullscreenDialog: true,
-          );
+          return MaterialPageRoute(builder: (_) => PlayerScreen(movieId: args['movieId']!, title: args['title']!), settings: settings, fullscreenDialog: true);
         }
         return null;
       },
@@ -80,15 +73,8 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isAuthenticated == null) {
-      return const Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-      );
-    }
-    if (_isAuthenticated!) {
-      return const MainScreen();
-    }
-    return const LoginScreen();
+    // Always go to MainScreen — movie browsing is public.
+    // Login/register are accessible from Settings when needed.
+    return const MainScreen();
   }
 }

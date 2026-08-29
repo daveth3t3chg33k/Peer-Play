@@ -16,6 +16,42 @@ class MovieService {
     return Movie.fromJson(jsonDecode(response.body));
   }
 
+  static Future<List<Movie>> getTrending({int limit = 10}) async {
+    final response = await ApiClient.get('/movies/trending', queryParams: {'limit': limit.toString()});
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Movie.fromJson(e)).toList();
+  }
+
+  static Future<List<Movie>> getRecent({int limit = 10}) async {
+    final response = await ApiClient.get('/movies/recent', queryParams: {'limit': limit.toString()});
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Movie.fromJson(e)).toList();
+  }
+
+  static Future<List<Movie>> getPopular({int limit = 20}) async {
+    final response = await ApiClient.get('/movies/popular', queryParams: {'limit': limit.toString()});
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Movie.fromJson(e)).toList();
+  }
+
+  static Future<List<Movie>> getTopRated({int limit = 20}) async {
+    final response = await ApiClient.get('/movies/top-rated', queryParams: {'limit': limit.toString()});
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Movie.fromJson(e)).toList();
+  }
+
+  static Future<List<Movie>> getByCategory(String category, {int limit = 20}) async {
+    final response = await ApiClient.get('/movies/by-category/$category', queryParams: {'limit': limit.toString()});
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Movie.fromJson(e)).toList();
+  }
+
+  static Future<List<String>> getGenres() async {
+    final response = await ApiClient.get('/movies/genres');
+    final List data = jsonDecode(response.body);
+    return data.cast<String>();
+  }
+
   static Future<PaginatedResponse<Movie>> searchMovies({
     String? q,
     List<String>? genres,
@@ -34,17 +70,5 @@ class MovieService {
     if (yearTo != null) params['year_to'] = yearTo.toString();
     final response = await ApiClient.get('/movies/search', queryParams: params);
     return PaginatedResponse.fromJson(jsonDecode(response.body), Movie.fromJson);
-  }
-
-  static Future<List<Movie>> getTrending({int limit = 10}) async {
-    final response = await ApiClient.get('/movies/trending', queryParams: {'limit': limit.toString()});
-    final List data = jsonDecode(response.body);
-    return data.map((e) => Movie.fromJson(e)).toList();
-  }
-
-  static Future<List<Movie>> getRecent({int limit = 10}) async {
-    final response = await ApiClient.get('/movies/recent', queryParams: {'limit': limit.toString()});
-    final List data = jsonDecode(response.body);
-    return data.map((e) => Movie.fromJson(e)).toList();
   }
 }

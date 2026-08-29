@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../services/auth_service.dart';
 
+/// Settings screen — clean grouped list layout
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -20,55 +21,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
-            padding: EdgeInsets.fromLTRB(AppTheme.spacingBase, AppTheme.spacingXxl, AppTheme.spacingBase, AppTheme.spacingMd),
-            child: Text('Settings', style: TextStyle(fontSize: AppTheme.fontSizeHeading, fontWeight: FontWeight.w800, color: AppTheme.text, letterSpacing: -0.5)),
+            padding: EdgeInsets.fromLTRB(AppTheme.base, AppTheme.xxl, AppTheme.base, AppTheme.md),
+            child: Text('Settings', style: TextStyle(fontSize: AppTheme.heading, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, letterSpacing: -0.5)),
           ),
 
-          // Account
           _buildSection('Account', [
-            _buildRow(Icons.person_outline_rounded, AppTheme.primary, 'Profile', value: 'Edit', onTap: () {}),
+            _buildRow(Icons.person_outline_rounded, 'Profile', trailing: const Text('Edit', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
             _buildDivider(),
-            _buildRow(Icons.language_rounded, AppTheme.accentBlue, 'Email', value: 'user@email.com'),
+            _buildRow(Icons.mail_outline_rounded, 'Email', trailing: const Text('user@email.com', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
             _buildDivider(),
-            _buildRow(Icons.logout_rounded, AppTheme.error, 'Sign Out', onTap: () async {
+            _buildRow(Icons.logout_rounded, 'Sign Out', trailing: null, onTap: () async {
               await AuthService.logout();
               if (mounted) Navigator.pushReplacementNamed(context, '/login');
-            }),
+            }, iconColor: AppTheme.primary),
           ]),
 
-          // Downloads
           _buildSection('Downloads', [
-            _buildRow(Icons.download_rounded, AppTheme.accent, 'Auto-download on WiFi',
-              trailing: Switch(
-                value: _autoDl,
-                onChanged: (v) => setState(() => _autoDl = v),
-                activeColor: AppTheme.primary,
-                activeTrackColor: AppTheme.primaryDark,
-                inactiveTrackColor: AppTheme.surfaceLight,
-                thumbColor: WidgetStateProperty.resolveWith((states) =>
-                  states.contains(WidgetState.selected) ? AppTheme.primary : AppTheme.textTertiary),
-              ),
-            ),
+            _buildRow(Icons.download_rounded, 'Auto-download on WiFi', trailing: Switch(
+              value: _autoDl,
+              onChanged: (v) => setState(() => _autoDl = v),
+              activeColor: AppTheme.textPrimary,
+              activeTrackColor: AppTheme.surfaceElevated,
+              inactiveTrackColor: AppTheme.surface,
+              thumbColor: WidgetStateProperty.resolveWith((states) => states.contains(WidgetState.selected) ? AppTheme.textPrimary : AppTheme.textMuted),
+            )),
             _buildDivider(),
-            _buildRow(Icons.movie_rounded, AppTheme.accentPurple, 'Download Quality', value: '1080p'),
+            _buildRow(Icons.high_quality_rounded, 'Download Quality', trailing: const Text('1080p', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
             _buildDivider(),
-            _buildRow(Icons.download_rounded, AppTheme.textTertiary, 'Clear Cache', value: '0 MB'),
+            _buildRow(Icons.delete_outline_rounded, 'Clear Cache', trailing: const Text('0 MB', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
           ]),
 
-          // Playback
           _buildSection('Playback', [
-            _buildRow(Icons.play_circle_outline_rounded, AppTheme.accent, 'Auto-play Next', value: 'On'),
+            _buildRow(Icons.play_circle_outline_rounded, 'Auto-play Next', trailing: const Text('On', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
           ]),
 
-          // About
           _buildSection('About', [
-            _buildRow(Icons.info_outline_rounded, AppTheme.accentBlue, 'Version', value: '1.0.0'),
+            _buildRow(Icons.info_outline_rounded, 'Version', trailing: const Text('1.0.0', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
             _buildDivider(),
-            _buildRow(Icons.shield_rounded, AppTheme.primary, 'Privacy Policy'),
+            _buildRow(Icons.shield_outlined, 'Privacy Policy'),
             _buildDivider(),
-            _buildRow(Icons.description_rounded, AppTheme.textTertiary, 'Terms of Service'),
-            _buildDivider(),
-            _buildRow(Icons.balance_rounded, AppTheme.textTertiary, 'Open Source Licenses'),
+            _buildRow(Icons.description_outlined, 'Terms of Service'),
           ]),
         ],
       ),
@@ -77,22 +69,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _buildSection(String title, List<Widget> children) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingBase),
+      padding: const EdgeInsets.symmetric(horizontal: AppTheme.base),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppTheme.spacingLg),
-          Text(
-            title.toUpperCase(),
-            style: const TextStyle(fontSize: AppTheme.fontSizeCaption, fontWeight: FontWeight.w700, color: AppTheme.textTertiary, letterSpacing: 1),
-          ),
-          const SizedBox(height: AppTheme.spacingSm),
+          const SizedBox(height: AppTheme.lg),
+          Text(title.toUpperCase(), style: TextStyle(fontSize: AppTheme.caption, fontWeight: FontWeight.w700, color: AppTheme.textMuted, letterSpacing: 1)),
+          const SizedBox(height: AppTheme.sm),
           Container(
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-              border: Border.all(color: AppTheme.border),
-            ),
+            decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(AppTheme.rMd)),
             clipBehavior: Clip.antiAlias,
             child: Column(children: children),
           ),
@@ -101,32 +86,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildRow(IconData icon, Color iconColor, String label, {String? value, Widget? trailing, VoidCallback? onTap}) {
+  Widget _buildRow(IconData icon, String label, {Widget? trailing, VoidCallback? onTap, Color? iconColor}) {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingBase, vertical: AppTheme.spacingMd + 2),
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.base, vertical: 14),
         child: Row(
           children: [
-            Container(
-              width: 28, height: 28,
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceLight,
-                borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-              ),
-              child: Icon(icon, size: 18, color: iconColor),
-            ),
-            const SizedBox(width: AppTheme.spacingMd),
-            Expanded(
-              child: Text(label, style: const TextStyle(fontSize: AppTheme.fontSizeBodyLarge, fontWeight: FontWeight.w500, color: AppTheme.text)),
-            ),
+            Icon(icon, size: 20, color: iconColor ?? AppTheme.textSecondary),
+            const SizedBox(width: AppTheme.md),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: AppTheme.bodyLg, fontWeight: FontWeight.w500, color: AppTheme.textPrimary))),
             if (trailing != null) trailing,
-            if (trailing == null && value != null)
-              Text(value, style: const TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.textTertiary)),
-            if (trailing == null)
-              const SizedBox(width: AppTheme.spacingXs),
-            if (trailing == null)
-              const Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.textMuted),
+            if (trailing != null) const SizedBox(width: AppTheme.xs),
+            if (trailing != null) const Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.textMuted),
           ],
         ),
       ),
@@ -134,6 +106,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDivider() {
-    return Container(height: 0.5, color: AppTheme.border, margin: const EdgeInsets.only(left: 52));
+    return Container(height: 0.5, color: AppTheme.divider, margin: const EdgeInsets.only(left: 44));
   }
 }

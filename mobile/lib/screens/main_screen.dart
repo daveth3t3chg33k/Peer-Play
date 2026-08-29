@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
-import '../screens/home_screen.dart';
-import '../screens/search_screen.dart';
-import '../screens/vault_screen.dart';
-import '../screens/settings_screen.dart';
+import 'home_screen.dart';
+import 'search_screen.dart';
+import 'vault_screen.dart';
+import 'settings_screen.dart';
 
+/// Main screen with bottom navigation — Netflix-style
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -22,31 +23,22 @@ class _MainScreenState extends State<MainScreen> {
     SettingsScreen(),
   ];
 
-  final _titles = const ['Home', 'Search', 'Vault', 'Settings'];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(child: _screens[_currentIndex]),
+      body: _screens[_currentIndex],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           color: AppTheme.background,
-          border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
+          border: Border(top: BorderSide(color: AppTheme.divider, width: 0.5)),
         ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
-          backgroundColor: AppTheme.background,
-          selectedItemColor: AppTheme.text,
-          unselectedItemColor: AppTheme.textMuted,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          unselectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_rounded, size: 22), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.search_rounded, size: 22), label: 'Search'),
-            BottomNavigationBarItem(icon: Icon(Icons.download_rounded, size: 22), label: 'Vault'),
+            BottomNavigationBarItem(icon: Icon(Icons.download_rounded, size: 22), label: 'Downloads'),
             BottomNavigationBarItem(icon: Icon(Icons.settings_rounded, size: 22), label: 'Settings'),
           ],
         ),

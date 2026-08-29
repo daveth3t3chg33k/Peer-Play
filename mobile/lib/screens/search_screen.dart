@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../config/theme.dart';
 import '../models/movie.dart';
 import '../services/movie_service.dart';
+import '../widgets/movie_card.dart';
 
+/// Search screen — Netflix-style search with grid results
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -13,14 +15,22 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final _searchController = TextEditingController();
+  final _focusNode = FocusNode();
   List<Movie> _results = [];
   bool _loading = false;
   bool _hasSearched = false;
   Timer? _debounce;
 
   @override
+  void initState() {
+    super.initState();
+    _focusNode.requestFocus();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    _focusNode.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -31,46 +41,46 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() { _results = []; _hasSearched = false; });
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 500), () => _performSearch(query));
+    _debounce = Timer(const Duration(milliseconds: 400), () => _performSearch(query));
   }
 
   Future<void> _performSearch(String query) async {
     setState(() { _loading = true; _hasSearched = true; });
     try {
       final response = await MovieService.searchMovies(q: query);
-      setState(() { _results = response.data; _loading = false; });
+      if (mounted) setState(() { _results = response.data; _loading = false; });
     } catch (e) {
-      setState(() { _results = []; _loading = false; });
+      if (mounted) setState(() { _results = []; _loading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
-    final colW = (sw - AppTheme.spacingBase * 2 - AppTheme.spacingSm) / 2;
+    final colW = (sw - AppTheme.base * 2 - AppTheme.sm) / 2;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(AppTheme.spacingBase, AppTheme.spacingXxl, AppTheme.spacingBase, AppTheme.spacingMd),
+          padding: const EdgeInsets.fromLTRB(AppTheme.base, AppTheme.xxl, AppTheme.base, AppTheme.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Search', style: TextStyle(fontSize: AppTheme.fontSizeHeading, fontWeight: FontWeight.w800, color: AppTheme.text, letterSpacing: -0.5)),
-              const SizedBox(height: AppTheme.spacingBase),
-              // Search bar
+              const Text('Search', style: TextStyle(fontSize: AppTheme.heading, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, letterSpacing: -0.5)),
+              const SizedBox(height: AppTheme.base),
               TextField(
                 controller: _searchController,
+                focusNode: _focusNode,
                 onChanged: _onSearchChanged,
-                style: const TextStyle(fontSize: AppTheme.fontSizeBodyLarge, color: AppTheme.text),
+                style: const TextStyle(color: AppTheme.textPrimary),
                 decoration: InputDecoration(
-                  hintText: 'Movies, genres, actors...',
-                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.textTertiary),
+                  hintText: 'Movies, genres...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.textMuted),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 16, color: AppTheme.textTertiary),
+                          icon: const Icon(Icons.close_rounded, size: 18, color: AppTheme.textMuted),
                           onPressed: () { _searchController.clear(); _onSearchChanged(''); },
                         )
                       : null,
@@ -83,80 +93,19 @@ class _SearchScreenState extends State<SearchScreen> {
         // Results
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.textPrimary, strokeWidth: 2))
               : !_hasSearched
-                  ? _buildEmptyState(Icons.search_rounded, 'Find Your Next Watch', 'Search by title, genre, or actor')
+                  ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.search_rounded, size: 44, color: AppTheme.textMuted), SizedBox(height: AppTheme.sm), Text('Search for movies', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))]))
                   : _results.isEmpty
-                      ? _buildEmptyState(Icons.search_off_rounded, 'No results found', 'Try a different search term')
+                      ? const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.search_off_rounded, size: 44, color: AppTheme.textMuted), SizedBox(height: AppTheme.sm), Text('No results found', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))]))
                       : GridView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingBase),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: colW / (colW * 1.4 + 40),
-                            crossAxisSpacing: AppTheme.spacingSm,
-                            mainAxisSpacing: AppTheme.spacingBase,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.base),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, childAspectRatio: colW / (colW * 1.4 + 36), crossAxisSpacing: AppTheme.sm, mainAxisSpacing: AppTheme.base),
                           itemCount: _results.length,
-                          itemBuilder: (ctx, i) => _buildGridCard(_results[i], colW),
+                          itemBuilder: (ctx, i) => MovieCard(movie: _results[i], width: colW, height: colW * 1.4, onTap: () => Navigator.pushNamed(context, '/movie_detail', arguments: _results[i].id)),
                         ),
         ),
       ],
-    );
-  }
-
-  Widget _buildEmptyState(IconData icon, String title, String desc) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: AppTheme.textMuted),
-          const SizedBox(height: AppTheme.spacingSm),
-          Text(title, style: const TextStyle(fontSize: AppTheme.fontSizeSubtitle, fontWeight: FontWeight.w700, color: AppTheme.text)),
-          const SizedBox(height: AppTheme.spacingXs),
-          Text(desc, style: const TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.textSecondary)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGridCard(Movie movie, double colW) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/movie_detail', arguments: movie.id),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: colW, height: colW * 1.4,
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceLight,
-              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4)),
-              ],
-            ),
-            child: Center(
-              child: Text(
-                movie.initial,
-                style: TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: AppTheme.primaryLight.withOpacity(0.4)),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(movie.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.text)),
-          Row(
-            children: [
-              if (movie.rating > 0) ...[
-                const Icon(Icons.star_rounded, size: 11, color: AppTheme.accentAmber),
-                const SizedBox(width: 2),
-                Text(movie.rating.toStringAsFixed(1), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.accentAmber)),
-              ],
-              if (movie.rating > 0 && movie.releaseYear > 0) const SizedBox(width: 4),
-              Text(movie.releaseYear.toString(), style: const TextStyle(fontSize: 11, color: AppTheme.textTertiary)),
-            ],
-          ),
-        ],
-      ),
     );
   }
 }

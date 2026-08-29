@@ -1,90 +1,88 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../models/movie.dart';
 
-class AppColors {
-  AppColors._();
-}
-
+/// Movie card — displays real poster image with title and year
 class MovieCard extends StatelessWidget {
-  final String title;
-  final String initial;
-  final double rating;
-  final int releaseYear;
+  final Movie movie;
   final VoidCallback? onTap;
+  final double? width;
+  final double? height;
 
   const MovieCard({
     super.key,
-    required this.title,
-    required this.initial,
-    this.rating = 0,
-    this.releaseYear = 0,
+    required this.movie,
     this.onTap,
+    this.width,
+    this.height,
   });
 
   @override
   Widget build(BuildContext context) {
+    final cardWidth = width ?? 130;
+    final cardHeight = height ?? 195;
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Poster placeholder
+          // Poster
           Container(
-            width: 130,
-            height: 195,
+            width: cardWidth,
+            height: cardHeight,
             decoration: BoxDecoration(
-              color: AppTheme.surfaceLight,
-              borderRadius: BorderRadius.circular(AppTheme.radiusPoster),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(AppTheme.rPoster),
             ),
-            child: Center(
-              child: Text(
-                initial,
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primaryLight.withOpacity(0.4),
-                ),
+            clipBehavior: Clip.antiAlias,
+            child: movie.posterUrl.trim().isNotEmpty && movie.posterUrl.trim() != ' '
+                ? Image.network(
+                    movie.posterUrl.trim(),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                  )
+                : _buildPlaceholder(),
+          ),
+          const SizedBox(height: 6),
+          // Title
+          SizedBox(
+            width: cardWidth,
+            child: Text(
+              movie.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: AppTheme.small,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+                height: 1.3,
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.text,
-            ),
-          ),
-          if (rating > 0 || releaseYear > 0)
-            Row(
-              children: [
-                if (rating > 0) ...[
-                  const Icon(Icons.star_rounded, size: 12, color: AppTheme.accentAmber),
-                  const SizedBox(width: 2),
-                  Text(
-                    rating.toStringAsFixed(1),
-                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.accentAmber),
-                  ),
-                ],
-                if (rating > 0 && releaseYear > 0) const SizedBox(width: 4),
-                if (releaseYear > 0)
-                  Text(
-                    releaseYear.toString(),
-                    style: const TextStyle(fontSize: 11, color: AppTheme.textTertiary),
-                  ),
-              ],
+          // Year
+          if (movie.releaseYear > 0)
+            Text(
+              '${movie.releaseYear}',
+              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: AppTheme.surface,
+      child: Center(
+        child: Text(
+          movie.title.isNotEmpty ? movie.title.substring(0, 1.clamp(0, movie.title.length)) : '?',
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.textMuted,
+          ),
+        ),
       ),
     );
   }

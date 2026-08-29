@@ -3,7 +3,6 @@ import '../config/theme.dart';
 
 class LoadingSpinner extends StatelessWidget {
   final String? message;
-
   const LoadingSpinner({super.key, this.message});
 
   @override
@@ -12,16 +11,17 @@ class LoadingSpinner extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(
-            color: AppTheme.primary,
-            strokeWidth: 3,
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              color: AppTheme.textPrimary,
+              strokeWidth: 2,
+            ),
           ),
           if (message != null) ...[
             const SizedBox(height: 16),
-            Text(
-              message!,
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-            ),
+            Text(message!, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
           ],
         ],
       ),

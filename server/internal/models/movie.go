@@ -18,6 +18,7 @@ type Movie struct {
 	DurationMinutes int           `json:"duration_minutes" db:"duration_minutes"`
 	Rating          float64       `json:"rating" db:"rating"`
 	InfoHash        string        `json:"info_hash,omitempty" db:"info_hash"`
+	Category        string        `json:"category" db:"category"`
 	CreatedAt       time.Time     `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
 	Sources         []VideoSource `json:"sources,omitempty"`

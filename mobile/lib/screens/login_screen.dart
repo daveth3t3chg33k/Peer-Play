@@ -30,61 +30,68 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _error = 'Please fill in all fields');
       return;
     }
-    setState(() { _loading = true; _error = ''; });
+    setState(() {
+      _loading = true;
+      _error = '';
+    });
     try {
       await AuthService.login(email, password);
       if (mounted) Navigator.pushReplacementNamed(context, '/main');
     } catch (e) {
-      setState(() => _error = 'Login failed. Please try again.');
+      setState(() => _error = 'Invalid email or password');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingXl),
+          padding: const EdgeInsets.symmetric(horizontal: AppTheme.xl),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: MediaQuery.of(context).size.height * 0.12),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.15),
 
               // Brand
-              Container(
-                width: 64, height: 64,
-                decoration: BoxDecoration(
-                  color: AppTheme.primary,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                  boxShadow: [
-                    BoxShadow(color: AppTheme.primary.withOpacity(0.35), blurRadius: 20, spreadRadius: 2),
-                  ],
-                ),
-                child: const Center(
-                  child: Text('P', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Colors.white)),
+              Center(
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(AppTheme.rMd),
+                  ),
+                  child: const Center(
+                    child: Text('P', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white)),
+                  ),
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingMd),
-              const Text('PeerPlay', style: TextStyle(fontSize: AppTheme.fontSizeHeading, fontWeight: FontWeight.w800, color: AppTheme.text, letterSpacing: -0.5)),
-              const SizedBox(height: AppTheme.spacingXs),
-              const Text('Stream free. Watch anywhere.', style: TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.textSecondary)),
+              const SizedBox(height: AppTheme.xxl),
+              const Center(
+                child: Text('Sign In', style: TextStyle(fontSize: AppTheme.heading, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+              ),
+              const SizedBox(height: AppTheme.sm),
+              const Center(
+                child: Text('Welcome back to PeerPlay', style: TextStyle(fontSize: AppTheme.body, color: AppTheme.textSecondary)),
+              ),
 
-              const SizedBox(height: AppTheme.spacingXxxl),
+              const SizedBox(height: AppTheme.xxxl),
 
               // Error
               if (_error.isNotEmpty)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(AppTheme.spacingMd),
-                  margin: const EdgeInsets.only(bottom: AppTheme.spacingBase),
+                  padding: const EdgeInsets.all(AppTheme.md),
+                  margin: const EdgeInsets.only(bottom: AppTheme.base),
                   decoration: BoxDecoration(
-                    color: AppTheme.error.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                    border: Border.all(color: AppTheme.error.withOpacity(0.3)),
+                    color: AppTheme.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(AppTheme.rSm),
                   ),
-                  child: Text(_error, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.error, fontSize: AppTheme.fontSizeSmall)),
+                  child: Text(_error, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.primary, fontSize: AppTheme.small)),
                 ),
 
               // Email
@@ -92,13 +99,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
-                style: const TextStyle(fontSize: AppTheme.fontSizeBodyLarge, color: AppTheme.text),
-                decoration: InputDecoration(
-                  hintText: 'Email',
-                  prefixIcon: const Icon(Icons.mail_outline_rounded, size: 20, color: AppTheme.textTertiary),
+                style: const TextStyle(color: AppTheme.textPrimary),
+                decoration: const InputDecoration(
+                  hintText: 'Email address',
+                  prefixIcon: Icon(Icons.mail_outline_rounded, size: 20, color: AppTheme.textMuted),
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.md),
 
               // Password
               TextField(
@@ -106,56 +113,45 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: !_showPassword,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _handleLogin(),
-                style: const TextStyle(fontSize: AppTheme.fontSizeBodyLarge, color: AppTheme.text),
+                style: const TextStyle(color: AppTheme.textPrimary),
                 decoration: InputDecoration(
                   hintText: 'Password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppTheme.textTertiary),
+                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20, color: AppTheme.textMuted),
                   suffixIcon: IconButton(
-                    icon: Icon(_showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: AppTheme.textTertiary),
+                    icon: Icon(_showPassword ? Icons.visibility_off_rounded : Icons.visibility_rounded, size: 20, color: AppTheme.textMuted),
                     onPressed: () => setState(() => _showPassword = !_showPassword),
                   ),
                 ),
               ),
-              const SizedBox(height: AppTheme.spacingSm),
 
-              // Sign In button
+              const SizedBox(height: AppTheme.xl),
+
+              // Sign In
               SizedBox(
-                width: double.infinity, height: 52,
+                width: double.infinity,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMd)),
+                    disabledBackgroundColor: AppTheme.primary.withOpacity(0.5),
                   ),
                   child: _loading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Sign In', style: TextStyle(fontSize: AppTheme.fontSizeBodyLarge, fontWeight: FontWeight.w700, color: Colors.white)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
-                          ],
-                        ),
+                      : const Text('Sign In', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                 ),
               ),
 
-              // Forgot password
-              TextButton(
-                onPressed: () {},
-                child: const Text('Forgot password?', style: TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.primary)),
-              ),
-
-              const SizedBox(height: AppTheme.spacingXxl),
+              const SizedBox(height: AppTheme.xxl),
 
               // Sign Up
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text("Don't have an account?", style: TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.textSecondary)),
+                  const Text("Don't have an account?", style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body)),
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),
-                    child: const Text(' Sign Up', style: TextStyle(fontSize: AppTheme.fontSizeBody, fontWeight: FontWeight.w700, color: AppTheme.primary)),
+                    child: const Text(' Sign Up', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: AppTheme.body)),
                   ),
                 ],
               ),

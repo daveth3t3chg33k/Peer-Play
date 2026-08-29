@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
+/// Vault screen — download management, clean minimal layout
 class VaultScreen extends StatelessWidget {
   const VaultScreen({super.key});
 
@@ -10,88 +11,61 @@ class VaultScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           const Padding(
-            padding: EdgeInsets.fromLTRB(AppTheme.spacingBase, AppTheme.spacingXxl, AppTheme.spacingBase, AppTheme.spacingMd),
+            padding: EdgeInsets.fromLTRB(AppTheme.base, AppTheme.xxl, AppTheme.base, AppTheme.sm),
+            child: Text('Downloads', style: TextStyle(fontSize: AppTheme.heading, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, letterSpacing: -0.5)),
+          ),
+
+          // Storage indicator
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: AppTheme.base),
+            padding: const EdgeInsets.all(AppTheme.base),
+            decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(AppTheme.rMd)),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('My Vault', style: TextStyle(fontSize: AppTheme.fontSizeHeading, fontWeight: FontWeight.w800, color: AppTheme.text, letterSpacing: -0.5)),
-                SizedBox(height: AppTheme.spacingXs),
-                Text('Downloaded for offline viewing', style: TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.textSecondary)),
-              ],
-            ),
-          ),
-
-          // Storage card
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: AppTheme.spacingBase),
-            padding: const EdgeInsets.all(AppTheme.spacingBase),
-            decoration: BoxDecoration(
-              color: AppTheme.surface,
-              borderRadius: BorderRadius.circular(AppTheme.radiusCard),
-              border: Border.all(color: AppTheme.border),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.storage_rounded, size: 18, color: AppTheme.primary),
-                    const SizedBox(width: AppTheme.spacingSm),
-                    const Text('Storage', style: TextStyle(fontSize: AppTheme.fontSizeBody, fontWeight: FontWeight.w600, color: AppTheme.text)),
-                  ],
-                ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const Text('Storage', style: TextStyle(fontSize: AppTheme.body, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                const SizedBox(height: AppTheme.sm),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: LinearProgressIndicator(
-                    value: 0,
-                    backgroundColor: AppTheme.surfaceLight,
-                    valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-                    minHeight: 6,
-                  ),
+                  borderRadius: BorderRadius.circular(2),
+                  child: const LinearProgressIndicator(value: 0, backgroundColor: AppTheme.surfaceElevated, valueColor: AlwaysStoppedAnimation(AppTheme.textPrimary), minHeight: 4),
                 ),
-                const SizedBox(height: AppTheme.spacingSm),
+                const SizedBox(height: AppTheme.sm),
                 const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('0 MB used', style: TextStyle(fontSize: AppTheme.fontSizeCaption, color: AppTheme.textSecondary)),
-                    Text('16 GB available', style: TextStyle(fontSize: AppTheme.fontSizeCaption, color: AppTheme.textTertiary)),
+                    Text('0 MB used', style: TextStyle(fontSize: AppTheme.caption, color: AppTheme.textSecondary)),
+                    Text('16 GB available', style: TextStyle(fontSize: AppTheme.caption, color: AppTheme.textMuted)),
                   ],
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: AppTheme.spacingXxl),
+          const SizedBox(height: AppTheme.xxxl),
 
           // Empty state
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('📥', style: TextStyle(fontSize: 48)),
-                const SizedBox(height: AppTheme.spacingSm),
-                const Text('No Downloads Yet', style: TextStyle(fontSize: AppTheme.fontSizeSubtitle, fontWeight: FontWeight.w700, color: AppTheme.text)),
-                const SizedBox(height: AppTheme.spacingXs),
+                const Icon(Icons.download_rounded, size: 44, color: AppTheme.textMuted),
+                const SizedBox(height: AppTheme.md),
+                const Text('No Downloads', style: TextStyle(fontSize: AppTheme.subtitle, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                const SizedBox(height: AppTheme.xs),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: AppTheme.spacingXxxl),
+                  padding: EdgeInsets.symmetric(horizontal: AppTheme.xxxl),
                   child: Text(
-                    'Movies you download will appear here. Watch them anytime, even offline.',
+                    'Movies you download will appear here for offline viewing.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: AppTheme.fontSizeBody, color: AppTheme.textSecondary),
+                    style: TextStyle(fontSize: AppTheme.body, color: AppTheme.textSecondary),
                   ),
                 ),
-                const SizedBox(height: AppTheme.spacingXl),
-                ElevatedButton.icon(
+                const SizedBox(height: AppTheme.xl),
+                ElevatedButton(
                   onPressed: () {},
-                  icon: const Icon(Icons.movie_rounded, color: Colors.white, size: 16),
-                  label: const Text('Browse Movies', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: AppTheme.fontSizeBodyLarge)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSm)),
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.surfaceElevated),
+                  child: const Text('Browse Movies', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),

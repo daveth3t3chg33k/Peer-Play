@@ -256,6 +256,58 @@ func (r *Router) handleRecentMovies(w http.ResponseWriter, req *http.Request) {
 	respondJSON(w, http.StatusOK, movies)
 }
 
+func (r *Router) handleMoviesByCategory(w http.ResponseWriter, req *http.Request) {
+	category := chi.URLParam(req, "category")
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	if limit < 1 || limit > 50 {
+		limit = 20
+	}
+
+	movies, err := r.movieRepo.GetByCategory(req.Context(), category, limit)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get movies by category")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, movies)
+}
+
+func (r *Router) handleGetGenres(w http.ResponseWriter, req *http.Request) {
+	genres, err := r.movieRepo.GetGenres(req.Context())
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get genres")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, genres)
+}
+
+func (r *Router) handlePopularMovies(w http.ResponseWriter, req *http.Request) {
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	if limit < 1 || limit > 50 {
+		limit = 20
+	}
+	movies, err := r.movieRepo.GetByCategory(req.Context(), "popular", limit)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get popular movies")
+		return
+	}
+	respondJSON(w, http.StatusOK, movies)
+}
+
+func (r *Router) handleTopRatedMovies(w http.ResponseWriter, req *http.Request) {
+	limit, _ := strconv.Atoi(req.URL.Query().Get("limit"))
+	if limit < 1 || limit > 50 {
+		limit = 20
+	}
+	movies, err := r.movieRepo.GetByCategory(req.Context(), "top_rated", limit)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get top rated movies")
+		return
+	}
+	respondJSON(w, http.StatusOK, movies)
+}
+
 // --- User ---
 
 func (r *Router) handleGetCurrentUser(w http.ResponseWriter, req *http.Request) {

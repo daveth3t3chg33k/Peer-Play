@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../config/theme.dart';
 
+/// Video player screen — Netflix-style controls
 class PlayerScreen extends StatefulWidget {
   final String movieId;
   final String title;
@@ -13,7 +15,6 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  // Fallback demo URL when torrent engine is not available
   static const _demoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
   late VideoPlayerController _controller;
@@ -25,12 +26,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     WakelockPlus.enable();
     _controller = VideoPlayerController.networkUrl(Uri.parse(_demoUrl))
       ..initialize().then((_) {
-        setState(() {
-          _duration = _controller.value.duration;
-        });
+        if (mounted) setState(() => _duration = _controller.value.duration);
         _controller.addListener(_onProgress);
       });
   }
@@ -38,10 +38,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void _onProgress() {
     if (!mounted) return;
     final v = _controller.value;
-    setState(() {
-      _position = v.position;
-      _buffering = v.isBuffering;
-    });
+    setState(() { _position = v.position; _buffering = v.isBuffering; });
   }
 
   @override
@@ -49,33 +46,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _controller.removeListener(_onProgress);
     _controller.dispose();
     WakelockPlus.disable();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
   void _togglePlay() {
-    setState(() {
-      if (_controller.value.isPlaying) {
-        _controller.pause();
-      } else {
-        _controller.play();
-      }
-    });
+    setState(() { _controller.value.isPlaying ? _controller.pause() : _controller.play(); });
     _showControls();
   }
 
   void _showControls() {
     setState(() => _controlsVisible = true);
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && _controller.value.isPlaying) {
-        setState(() => _controlsVisible = false);
-      }
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted && _controller.value.isPlaying) setState(() => _controlsVisible = false);
     });
-  }
-
-  void _seek(Duration offset) {
-    final newPos = _position + offset;
-    _controller.seekTo(newPos < Duration.zero ? Duration.zero : (newPos > _duration ? _duration : newPos));
-    _showControls();
   }
 
   String _fmt(Duration d) {
@@ -87,40 +71,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final progress = _duration.inMilliseconds > 0
-        ? _position.inMilliseconds / _duration.inMilliseconds
-        : 0.0;
+    final progress = _duration.inMilliseconds > 0 ? _position.inMilliseconds / _duration.inMilliseconds : 0.0;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () {
-          if (!_controlsVisible) {
-            _showControls();
-          } else {
-            setState(() => _controlsVisible = false);
-          }
-        },
+        onTap: () { if (!_controlsVisible) _showControls(); else setState(() => _controlsVisible = false); },
         child: Stack(
           fit: StackFit.expand,
           children: [
             // Video
             Center(
               child: _controller.value.isInitialized
-                  ? AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: VideoPlayer(_controller),
-                    )
-                  : const CircularProgressIndicator(color: AppTheme.primary),
+                  ? AspectRatio(aspectRatio: _controller.value.aspectRatio, child: VideoPlayer(_controller))
+                  : const CircularProgressIndicator(color: AppTheme.textPrimary, strokeWidth: 2),
             ),
 
-            // Buffering overlay
             if (_buffering)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
+              const Center(child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
 
-            // Controls
+            // Controls overlay
             if (_controlsVisible)
               AnimatedOpacity(
                 opacity: _controlsVisible ? 1.0 : 0.0,
@@ -140,130 +110,49 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       children: [
                         // Top bar
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingBase),
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.base),
                           child: Row(
                             children: [
-                              IconButton(
-                                onPressed: () => Navigator.pop(context),
-                                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22),
-                              ),
+                              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 22)),
                               Expanded(
-                                child: Text(
-                                  widget.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(color: Colors.white, fontSize: AppTheme.fontSizeBodyLarge, fontWeight: FontWeight.w600),
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: () {},
-                                icon: const Icon(Icons.more_vert_rounded, color: Colors.white, size: 22),
+                                child: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: AppTheme.bodyLg, fontWeight: FontWeight.w600)),
                               ),
                             ],
                           ),
                         ),
 
-                        // Center play/pause
+                        // Center play
                         Center(
                           child: GestureDetector(
                             onTap: _togglePlay,
                             child: Container(
-                              width: 72, height: 72,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withOpacity(0.8),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 40,
-                              ),
+                              width: 64, height: 64,
+                              decoration: BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                              child: Icon(_controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: Colors.white, size: 36),
                             ),
                           ),
                         ),
 
                         // Bottom controls
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingBase),
+                          padding: const EdgeInsets.symmetric(horizontal: AppTheme.base),
                           child: Column(
                             children: [
-                              // Progress bar
                               Row(
                                 children: [
-                                  Text(_fmt(_position), style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.fontSizeCaption)),
-                                  const SizedBox(width: AppTheme.spacingSm),
+                                  Text(_fmt(_position), style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.caption)),
+                                  const SizedBox(width: AppTheme.sm),
                                   Expanded(
                                     child: SliderTheme(
-                                      data: SliderThemeData(
-                                        activeTrackColor: AppTheme.primary,
-                                        inactiveTrackColor: Colors.white24,
-                                        thumbColor: AppTheme.primary,
-                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                                        trackHeight: 3,
-                                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                                      ),
-                                      child: Slider(
-                                        value: progress.clamp(0.0, 1.0),
-                                        onChanged: (v) {
-                                          _controller.seekTo(Duration(milliseconds: (v * _duration.inMilliseconds).toInt()));
-                                          _showControls();
-                                        },
-                                      ),
+                                      data: SliderThemeData(activeTrackColor: AppTheme.primary, inactiveTrackColor: Colors.white24, thumbColor: AppTheme.primary, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6), trackHeight: 2, overlayShape: const RoundSliderOverlayShape(overlayRadius: 12)),
+                                      child: Slider(value: progress.clamp(0.0, 1.0), onChanged: (v) { _controller.seekTo(Duration(milliseconds: (v * _duration.inMilliseconds).toInt())); _showControls(); }),
                                     ),
                                   ),
-                                  const SizedBox(width: AppTheme.spacingSm),
-                                  Text(_fmt(_duration), style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.fontSizeCaption)),
+                                  const SizedBox(width: AppTheme.sm),
+                                  Text(_fmt(_duration), style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.caption)),
                                 ],
                               ),
-
-                              // Control buttons
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  IconButton(
-                                    onPressed: () { _controller.seekTo(Duration.zero); _controller.play(); _showControls(); },
-                                    icon: const Icon(Icons.replay_rounded, color: Colors.white, size: 24),
-                                  ),
-                                  const SizedBox(width: AppTheme.spacingXxl),
-                                  IconButton(
-                                    onPressed: () => _seek(const Duration(seconds: -15)),
-                                    icon: const Icon(Icons.skip_previous_rounded, color: Colors.white, size: 28),
-                                  ),
-                                  const SizedBox(width: AppTheme.spacingXxl),
-                                  IconButton(
-                                    onPressed: _togglePlay,
-                                    icon: Icon(
-                                      _controller.value.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                      color: Colors.white,
-                                      size: 36,
-                                    ),
-                                  ),
-                                  const SizedBox(width: AppTheme.spacingXxl),
-                                  IconButton(
-                                    onPressed: () => _seek(const Duration(seconds: 15)),
-                                    icon: const Icon(Icons.skip_next_rounded, color: Colors.white, size: 28),
-                                  ),
-                                  const SizedBox(width: AppTheme.spacingXxl),
-                                  IconButton(
-                                    onPressed: () { _controller.seekTo(_duration); _showControls(); },
-                                    icon: const Icon(Icons.forward_rounded, color: Colors.white, size: 24),
-                                  ),
-                                ],
-                              ),
-
-                              // Secondary controls
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  IconButton(onPressed: () {}, icon: const Icon(Icons.volume_up_rounded, color: Colors.white, size: 20)),
-                                  const SizedBox(width: AppTheme.spacingXxl),
-                                  IconButton(onPressed: () {}, icon: const Icon(Icons.subtitles_rounded, color: Colors.white, size: 20)),
-                                  const SizedBox(width: AppTheme.spacingXxl),
-                                  IconButton(onPressed: () {}, icon: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 20)),
-                                ],
-                              ),
-
-                              const SizedBox(height: AppTheme.spacingXl),
+                              const SizedBox(height: AppTheme.sm),
                             ],
                           ),
                         ),

@@ -19,6 +19,8 @@ type MovieRepository interface {
 	Search(ctx context.Context, query models.MovieSearchQuery) ([]models.Movie, int, error)
 	GetTrending(ctx context.Context, limit int) ([]models.Movie, error)
 	GetRecent(ctx context.Context, limit int) ([]models.Movie, error)
+	GetByCategory(ctx context.Context, category string, limit int) ([]models.Movie, error)
+	GetGenres(ctx context.Context) ([]string, error)
 	Create(ctx context.Context, movie *models.Movie) error
 	Update(ctx context.Context, movie *models.Movie) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -47,7 +49,7 @@ func (r *movieRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Mo
 		&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseYear,
 		&movie.Genres, &movie.PosterURL, &movie.BackdropURL,
 		&movie.DurationMinutes, &movie.Rating, &movie.InfoHash,
-		&movie.CreatedAt, &movie.UpdatedAt,
+		&movie.Category, &movie.CreatedAt, &movie.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -110,7 +112,7 @@ func (r *movieRepository) List(ctx context.Context, page, pageSize int) ([]model
 	// Fetch page
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, created_at, updated_at
 		FROM movies
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
@@ -182,7 +184,7 @@ func (r *movieRepository) Search(ctx context.Context, q models.MovieSearchQuery)
 	dataArgs = append(dataArgs, q.PageSize, offset)
 	dataQuery := fmt.Sprintf(`
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, created_at, updated_at
 		FROM movies %s
 		ORDER BY ts_rank(to_tsvector('english', title), plainto_tsquery('english', $1)) DESC, created_at DESC
 		LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
@@ -204,7 +206,7 @@ func (r *movieRepository) Search(ctx context.Context, q models.MovieSearchQuery)
 func (r *movieRepository) GetTrending(ctx context.Context, limit int) ([]models.Movie, error) {
 	query := `
 		SELECT m.id, m.title, m.description, m.release_year, m.genres, m.poster_url,
-		       m.backdrop_url, m.duration_minutes, m.rating, m.info_hash, m.created_at, m.updated_at
+		       m.backdrop_url, m.duration_minutes, m.rating, m.info_hash, m.category, m.created_at, m.updated_at
 		FROM movies m
 		ORDER BY m.rating DESC NULLS LAST, m.created_at DESC
 		LIMIT $1`
@@ -221,7 +223,7 @@ func (r *movieRepository) GetTrending(ctx context.Context, limit int) ([]models.
 func (r *movieRepository) GetRecent(ctx context.Context, limit int) ([]models.Movie, error) {
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, created_at, updated_at
 		FROM movies
 		ORDER BY created_at DESC
 		LIMIT $1`
@@ -233,6 +235,43 @@ func (r *movieRepository) GetRecent(ctx context.Context, limit int) ([]models.Mo
 	defer rows.Close()
 
 	return scanMovies(rows)
+}
+
+func (r *movieRepository) GetByCategory(ctx context.Context, category string, limit int) ([]models.Movie, error) {
+	query := `
+		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
+		       duration_minutes, rating, info_hash, category, created_at, updated_at
+		FROM movies
+		WHERE category = $1
+		ORDER BY rating DESC NULLS LAST
+		LIMIT $2`
+
+	rows, err := r.db.Pool.Query(ctx, query, category, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get movies by category: %w", err)
+	}
+	defer rows.Close()
+
+	return scanMovies(rows)
+}
+
+func (r *movieRepository) GetGenres(ctx context.Context) ([]string, error) {
+	query := `SELECT DISTINCT unnest(genres) FROM movies ORDER BY 1`
+	rows, err := r.db.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get genres: %w", err)
+	}
+	defer rows.Close()
+
+	var genres []string
+	for rows.Next() {
+		var genre string
+		if err := rows.Scan(&genre); err != nil {
+			return nil, err
+		}
+		genres = append(genres, genre)
+	}
+	return genres, rows.Err()
 }
 
 func (r *movieRepository) Create(ctx context.Context, movie *models.Movie) error {
@@ -287,7 +326,7 @@ func scanMovies(rows pgx.Rows) ([]models.Movie, error) {
 			&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseYear,
 			&movie.Genres, &movie.PosterURL, &movie.BackdropURL,
 			&movie.DurationMinutes, &movie.Rating, &movie.InfoHash,
-			&movie.CreatedAt, &movie.UpdatedAt,
+			&movie.Category, &movie.CreatedAt, &movie.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan movie: %w", err)
 		}

@@ -10,6 +10,7 @@ class Movie {
   final int durationMinutes;
   final double rating;
   final String? infoHash;
+  final String category;
   final String createdAt;
   final String updatedAt;
   final List<VideoSource>? sources;
@@ -26,6 +27,7 @@ class Movie {
     required this.durationMinutes,
     required this.rating,
     this.infoHash,
+    this.category = '',
     required this.createdAt,
     required this.updatedAt,
     this.sources,
@@ -44,6 +46,7 @@ class Movie {
       durationMinutes: json['duration_minutes'] ?? 0,
       rating: (json['rating'] ?? 0).toDouble(),
       infoHash: json['info_hash'],
+      category: json['category'] ?? '',
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       sources: json['sources'] != null
@@ -60,8 +63,6 @@ class Movie {
     final m = durationMinutes % 60;
     return '${h}h ${m}m';
   }
-
-  String get initial => title.isNotEmpty ? title[0].toUpperCase() : '?';
 }
 
 class VideoSource {

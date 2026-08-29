@@ -1,4 +1,4 @@
-package com.peerplay.peerplay
+package com.peerplay
 
 import io.flutter.embedding.android.FlutterActivity
 

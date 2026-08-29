@@ -41,7 +41,9 @@ class ApiClient {
 
   static http.Response _handleResponse(http.Response response) {
     if (response.statusCode == 401) {
-      _storage.delete(key: 'auth_token');
+      // Only delete token on 401 if it's a user-specific endpoint (not movie browsing)
+      // Movie browsing is now public, so 401 likely means token is expired for protected routes
+      // Don't silently delete — let the caller decide what to do
     }
     return response;
   }

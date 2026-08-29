@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
 
+/// Skeleton loading card — dark shimmer placeholder
 class SkeletonCard extends StatelessWidget {
   final double width;
   final double height;
@@ -13,8 +14,8 @@ class SkeletonCard extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLight,
-        borderRadius: BorderRadius.circular(AppTheme.radiusPoster),
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.rPoster),
       ),
     );
   }

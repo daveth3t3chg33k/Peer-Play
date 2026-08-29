@@ -73,16 +73,20 @@ func (r *Router) Setup() *chi.Mux {
 		v1.Post("/auth/register", r.handleRegister)
 		v1.Post("/auth/login", r.handleLogin)
 
-		// Protected routes
+		// Public movie browsing — no auth required
+		v1.Get("/movies", r.handleListMovies)
+		v1.Get("/movies/trending", r.handleTrendingMovies)
+		v1.Get("/movies/recent", r.handleRecentMovies)
+		v1.Get("/movies/popular", r.handlePopularMovies)
+		v1.Get("/movies/top-rated", r.handleTopRatedMovies)
+		v1.Get("/movies/by-category/{category}", r.handleMoviesByCategory)
+		v1.Get("/movies/genres", r.handleGetGenres)
+		v1.Get("/movies/{id}", r.handleGetMovie)
+		v1.Get("/movies/search", r.handleSearchMovies)
+
+		// Protected routes — require authentication
 		v1.Group(func(protected chi.Router) {
 			protected.Use(middleware.AuthMiddleware(&r.cfg.JWT))
-
-			// Movies
-			protected.Get("/movies", r.handleListMovies)
-			protected.Get("/movies/trending", r.handleTrendingMovies)
-			protected.Get("/movies/recent", r.handleRecentMovies)
-			protected.Get("/movies/{id}", r.handleGetMovie)
-			protected.Get("/movies/search", r.handleSearchMovies)
 
 			// User
 			protected.Get("/me", r.handleGetCurrentUser)
