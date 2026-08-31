@@ -21,6 +21,7 @@ type MovieRepository interface {
 	GetRecent(ctx context.Context, limit int) ([]models.Movie, error)
 	GetByCategory(ctx context.Context, category string, limit int) ([]models.Movie, error)
 	GetGenres(ctx context.Context) ([]string, error)
+	GetCastByMovieID(ctx context.Context, movieID uuid.UUID) ([]models.CastMember, error)
 	Create(ctx context.Context, movie *models.Movie) error
 	Update(ctx context.Context, movie *models.Movie) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -41,7 +42,7 @@ func (r *movieRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Mo
 
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, created_at, updated_at
 		FROM movies
 		WHERE id = $1`
 
@@ -272,6 +273,31 @@ func (r *movieRepository) GetGenres(ctx context.Context) ([]string, error) {
 		genres = append(genres, genre)
 	}
 	return genres, rows.Err()
+}
+
+func (r *movieRepository) GetCastByMovieID(ctx context.Context, movieID uuid.UUID) ([]models.CastMember, error) {
+	query := `
+		SELECT id, movie_id, name, character, profile_path, department, sort_order, created_at
+		FROM cast_members
+		WHERE movie_id = $1
+		ORDER BY sort_order ASC`
+
+	rows, err := r.db.Pool.Query(ctx, query, movieID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cast: %w", err)
+	}
+	defer rows.Close()
+
+	var members []models.CastMember
+	for rows.Next() {
+		var m models.CastMember
+		if err := rows.Scan(&m.ID, &m.MovieID, &m.Name, &m.Character,
+			&m.ProfilePath, &m.Department, &m.Order, &m.CreatedAt); err != nil {
+			return nil, fmt.Errorf("failed to scan cast member: %w", err)
+		}
+		members = append(members, m)
+	}
+	return members, rows.Err()
 }
 
 func (r *movieRepository) Create(ctx context.Context, movie *models.Movie) error {

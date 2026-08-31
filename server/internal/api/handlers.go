@@ -509,6 +509,60 @@ func (r *Router) handleRemoveBookmark(w http.ResponseWriter, req *http.Request) 
 	respondJSON(w, http.StatusOK, map[string]string{"status": "removed"})
 }
 
+// --- Cast & Crew ---
+
+func (r *Router) handleGetMovieCredits(w http.ResponseWriter, req *http.Request) {
+	idStr := chi.URLParam(req, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid movie id")
+		return
+	}
+
+	// Verify movie exists
+	movie, err := r.movieRepo.GetByID(req.Context(), id)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "movie not found")
+		return
+	}
+
+	cast, err := r.movieRepo.GetCastByMovieID(req.Context(), id)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get cast")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"movie_id": movie.ID,
+		"title":   movie.Title,
+		"cast":    cast,
+	})
+}
+
+// --- Stream Sources ---
+
+func (r *Router) handleGetStreamSources(w http.ResponseWriter, req *http.Request) {
+	idStr := chi.URLParam(req, "id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		respondError(w, http.StatusBadRequest, "invalid movie id")
+		return
+	}
+
+	// Verify movie exists
+	movie, err := r.movieRepo.GetByID(req.Context(), id)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "movie not found")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, map[string]interface{}{
+		"movie_id": movie.ID,
+		"title":   movie.Title,
+		"sources": movie.Sources,
+	})
+}
+
 // --- Helpers ---
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {

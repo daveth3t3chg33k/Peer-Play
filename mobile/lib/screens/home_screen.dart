@@ -6,7 +6,8 @@ import '../widgets/movie_card.dart';
 import '../widgets/section_header.dart';
 import '../widgets/skeleton_card.dart';
 
-/// Home screen — Netflix-style layout with hero banner + category carousels
+/// Home screen — Netflix-style layout with hero banner + category carousels.
+/// Loads data sequentially to avoid saturating the database connection pool.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -36,31 +37,53 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       loading = true;
       error = null;
+      trending = [];
+      popular = [];
+      topRated = [];
+      scifi = [];
+      action = [];
+      drama = [];
+      horror = [];
+      animation = [];
     });
+
     try {
-      final results = await Future.wait([
-        MovieService.getTrending(limit: 10),
-        MovieService.getPopular(limit: 10),
-        MovieService.getTopRated(limit: 10),
-        MovieService.getByCategory('scifi', limit: 10),
-        MovieService.getByCategory('action', limit: 10),
-        MovieService.getByCategory('drama', limit: 10),
-        MovieService.getByCategory('horror', limit: 10),
-        MovieService.getByCategory('animation', limit: 10),
-      ]);
-      if (mounted) {
-        setState(() {
-          trending = results[0];
-          popular = results[1];
-          topRated = results[2];
-          scifi = results[3];
-          action = results[4];
-          drama = results[5];
-          horror = results[6];
-          animation = results[7];
-          loading = false;
-        });
-      }
+      // Load trending first for hero banner
+      final t = await MovieService.getTrending(limit: 10);
+      if (!mounted) return;
+      setState(() => trending = t);
+
+      // Load categories sequentially to avoid DB pool saturation
+      final p = await MovieService.getPopular(limit: 10);
+      if (!mounted) return;
+      setState(() => popular = p);
+
+      final tr = await MovieService.getTopRated(limit: 10);
+      if (!mounted) return;
+      setState(() => topRated = tr);
+
+      final s = await MovieService.getByCategory('scifi', limit: 10);
+      if (!mounted) return;
+      setState(() => scifi = s);
+
+      final a = await MovieService.getByCategory('action', limit: 10);
+      if (!mounted) return;
+      setState(() => action = a);
+
+      final d = await MovieService.getByCategory('drama', limit: 10);
+      if (!mounted) return;
+      setState(() => drama = d);
+
+      final h = await MovieService.getByCategory('horror', limit: 10);
+      if (!mounted) return;
+      setState(() => horror = h);
+
+      final an = await MovieService.getByCategory('animation', limit: 10);
+      if (!mounted) return;
+      setState(() {
+        animation = an;
+        loading = false;
+      });
     } catch (e) {
       debugPrint('HomeScreen load error: $e');
       if (mounted) {
@@ -129,10 +152,9 @@ class _HomeScreenState extends State<HomeScreen> {
           if (hero != null)
             SliverToBoxAdapter(child: _buildHero(hero, sw)),
 
-          // Category carousels
-          if (loading) ...[
-            _buildSkeletonRow('Trending Now'),
-            _buildSkeletonRow('Popular'),
+          // Category carousels — show skeleton rows while loading
+          if (loading && trending.isEmpty) ...[
+            _buildSkeletonRow('Loading'),
           ] else ...[
             if (topRated.isNotEmpty) _buildCategoryRow('Top Rated', topRated),
             if (popular.isNotEmpty) _buildCategoryRow('Popular', popular),
@@ -141,6 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
             if (drama.isNotEmpty) _buildCategoryRow('Drama', drama),
             if (horror.isNotEmpty) _buildCategoryRow('Horror', horror),
             if (animation.isNotEmpty) _buildCategoryRow('Animation', animation),
+            // Show skeleton while more categories are still loading
+            if (loading) _buildSkeletonRow('Loading more...'),
           ],
 
           const SliverToBoxAdapter(child: SizedBox(height: 100)),

@@ -81,7 +81,10 @@ func (r *Router) Setup() *chi.Mux {
 		v1.Get("/movies/top-rated", r.handleTopRatedMovies)
 		v1.Get("/movies/by-category/{category}", r.handleMoviesByCategory)
 		v1.Get("/movies/genres", r.handleGetGenres)
+
 		v1.Get("/movies/{id}", r.handleGetMovie)
+		v1.Get("/movies/{id}/credits", r.handleGetMovieCredits)
+		v1.Get("/movies/{id}/stream-sources", r.handleGetStreamSources)
 		v1.Get("/movies/search", r.handleSearchMovies)
 
 		// Protected routes — require authentication

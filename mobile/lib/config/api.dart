@@ -7,6 +7,8 @@ class ApiClient {
   static const String _devBaseUrl = 'http://10.0.2.2:8080'; // Emulator localhost
   static const String _prodBaseUrl = 'https://api.peerplay.app';
   static const String _apiPrefix = '/api/v1';
+  static final _client = http.Client();
+  static const Duration _timeout = Duration(seconds: 30);
 
   static String get _baseUrl => _devBaseUrl;
 
@@ -28,14 +30,14 @@ class ApiClient {
   static Future<http.Response> get(String path, {Map<String, String>? queryParams}) async {
     final uri = Uri.parse('$_baseUrl$_apiPrefix$path').replace(queryParameters: queryParams);
     final headers = await _authHeaders();
-    final response = await http.get(uri, headers: headers);
+    final response = await _client.get(uri, headers: headers).timeout(_timeout);
     return _handleResponse(response);
   }
 
   static Future<http.Response> post(String path, {Map<String, dynamic>? body}) async {
     final uri = Uri.parse('$_baseUrl$_apiPrefix$path');
     final headers = await _authHeaders();
-    final response = await http.post(uri, headers: headers, body: jsonEncode(body));
+    final response = await _client.post(uri, headers: headers, body: jsonEncode(body)).timeout(_timeout);
     return _handleResponse(response);
   }
 
