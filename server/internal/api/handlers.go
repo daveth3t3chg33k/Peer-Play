@@ -539,6 +539,46 @@ func (r *Router) handleGetMovieCredits(w http.ResponseWriter, req *http.Request)
 	})
 }
 
+// --- Batch Movies ---
+
+func (r *Router) handleGetMoviesByIDs(w http.ResponseWriter, req *http.Request) {
+	var input struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(req.Body).Decode(&input); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+
+	if len(input.IDs) == 0 {
+		respondJSON(w, http.StatusOK, []models.Movie{})
+		return
+	}
+
+	if len(input.IDs) > 50 {
+		respondError(w, http.StatusBadRequest, "too many ids (max 50)")
+		return
+	}
+
+	uuids := make([]uuid.UUID, 0, len(input.IDs))
+	for _, idStr := range input.IDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			respondError(w, http.StatusBadRequest, "invalid movie id: "+idStr)
+			return
+		}
+		uuids = append(uuids, id)
+	}
+
+	movies, err := r.movieRepo.GetMoviesByIDs(req.Context(), uuids)
+	if err != nil {
+		respondError(w, http.StatusInternalServerError, "failed to get movies")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, movies)
+}
+
 // --- Stream Sources ---
 
 func (r *Router) handleGetStreamSources(w http.ResponseWriter, req *http.Request) {
