@@ -82,10 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _buildDivider(),
       _buildRow(Icons.mail_outline_rounded, 'Email', trailing: Text(_user?.email ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body), overflow: TextOverflow.ellipsis)),
       _buildDivider(),
-      _buildRow(Icons.logout_rounded, 'Sign Out', trailing: null, onTap: () async {
-        await AuthService.logout();
-        if (mounted) setState(() => _user = null);
-      }, iconColor: AppTheme.primary),
+      _buildRow(Icons.logout_rounded, 'Sign Out', trailing: null, onTap: () => _showLogoutConfirmation(), iconColor: AppTheme.primary),
     ];
   }
 
@@ -147,6 +144,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (trailing != null) const Icon(Icons.chevron_right_rounded, size: 16, color: AppTheme.textMuted),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.rMd)),
+        title: const Text('Sign Out', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700)),
+        content: const Text(
+          'Are you sure you want to sign out? You will need to sign in again to access bookmarks and watch history.',
+          style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await AuthService.logout();
+              if (mounted) setState(() => _user = null);
+            },
+            child: const Text('Sign Out', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
       ),
     );
   }

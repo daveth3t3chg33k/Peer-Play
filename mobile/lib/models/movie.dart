@@ -11,6 +11,7 @@ class Movie {
   final double rating;
   final String? infoHash;
   final String category;
+  final String? trailerKey;
   final String createdAt;
   final String updatedAt;
   final List<VideoSource>? sources;
@@ -28,6 +29,7 @@ class Movie {
     required this.rating,
     this.infoHash,
     this.category = '',
+    this.trailerKey,
     required this.createdAt,
     required this.updatedAt,
     this.sources,
@@ -47,6 +49,7 @@ class Movie {
       rating: (json['rating'] ?? 0).toDouble(),
       infoHash: json['info_hash'],
       category: json['category'] ?? '',
+      trailerKey: json['youtube_trailer_key']?.toString().isNotEmpty == true ? json['youtube_trailer_key'] : null,
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
       sources: json['sources'] != null
@@ -160,6 +163,48 @@ class CastMember {
     if (profilePath.isEmpty) return '';
     if (profilePath.startsWith('http')) return profilePath;
     return 'https://image.tmdb.org/t/p/w185$profilePath';
+  }
+}
+
+class WatchHistoryEntry {
+  final String id;
+  final String movieId;
+  final int progressSeconds;
+  final bool completed;
+  final String lastWatchedAt;
+  final Movie? movie;
+
+  WatchHistoryEntry({
+    required this.id,
+    required this.movieId,
+    required this.progressSeconds,
+    required this.completed,
+    required this.lastWatchedAt,
+    this.movie,
+  });
+
+  factory WatchHistoryEntry.fromJson(Map<String, dynamic> json) {
+    return WatchHistoryEntry(
+      id: json['id']?.toString() ?? '',
+      movieId: json['movie_id']?.toString() ?? '',
+      progressSeconds: json['progress_seconds'] ?? 0,
+      completed: json['completed'] ?? false,
+      lastWatchedAt: json['last_watched_at'] ?? '',
+      movie: json['movie'] != null ? Movie.fromJson(json['movie']) : null,
+    );
+  }
+
+  double get progressFraction {
+    if (movie == null || movie!.durationMinutes == 0) return 0;
+    final totalSeconds = movie!.durationMinutes * 60;
+    return (progressSeconds / totalSeconds).clamp(0.0, 1.0);
+  }
+
+  String get progressLabel {
+    final h = progressSeconds ~/ 3600;
+    final m = (progressSeconds % 3600) ~/ 60;
+    if (h > 0) return '${h}h ${m}m left';
+    return '${m}m left';
   }
 }
 

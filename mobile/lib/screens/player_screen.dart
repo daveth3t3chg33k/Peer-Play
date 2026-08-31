@@ -4,8 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../config/theme.dart';
+import '../services/movie_service.dart';
 import '../services/torrent_channel.dart';
 import '../services/torrent_service.dart';
+import '../services/auth_service.dart';
 
 /// Video player screen — Netflix-style controls with torrent streaming support.
 ///
@@ -41,12 +43,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   TorrentStatusInfo? _torrentStatus;
   StreamSubscription<TorrentStatusInfo>? _torrentSub;
+  Timer? _progressTimer;
+  bool _isAuthenticated = false;
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     WakelockPlus.enable();
+    _checkAuth();
     _startPlayback();
   }
 
@@ -126,6 +131,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             });
             _controller!.addListener(_onProgress);
             _controller!.play();
+            _startProgressTracking();
           }
         }).catchError((error) {
           if (mounted) {
@@ -154,8 +160,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
+  Future<void> _checkAuth() async {
+    _isAuthenticated = await AuthService.isAuthenticated();
+  }
+
+  /// Send watch progress to the backend every 30 seconds.
+  void _startProgressTracking() {
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _sendProgressUpdate();
+    });
+  }
+
+  void _sendProgressUpdate() {
+    if (!_isAuthenticated || _controller == null) return;
+    final seconds = _position.inSeconds;
+    final total = _duration.inSeconds;
+    final completed = total > 0 && seconds >= total - 5;
+    MovieService.updateWatchProgress(
+      widget.movieId,
+      seconds,
+      completed: completed,
+    );
+  }
+
   @override
   void dispose() {
+    _sendProgressUpdate(); // Final progress update on exit
+    _progressTimer?.cancel();
     _controller?.removeListener(_onProgress);
     _controller?.dispose();
     _torrentSub?.cancel();

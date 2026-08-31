@@ -80,6 +80,79 @@ class MovieService {
     return cast.map((e) => CastMember.fromJson(e)).toList();
   }
 
+  /// Fetch multiple movies by their IDs (batch endpoint).
+  static Future<List<Movie>> getMoviesByIDs(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final response = await ApiClient.post('/movies/by-ids', body: {
+      'ids': ids,
+    });
+    final List data = jsonDecode(response.body);
+    return data.map((e) => Movie.fromJson(e)).toList();
+  }
+
+  /// Fetch the current user's watch history.
+  static Future<List<WatchHistoryEntry>> getWatchHistory({int page = 1, int pageSize = 20}) async {
+    final response = await ApiClient.get('/watch-history', queryParams: {
+      'page': page.toString(),
+      'page_size': pageSize.toString(),
+    });
+    if (response.statusCode == 401) return [];
+    final data = jsonDecode(response.body);
+    final List entries = data['data'] ?? [];
+    return entries.map((e) => WatchHistoryEntry.fromJson(e)).toList();
+  }
+
+  /// Update watch progress for a movie.
+  static Future<void> updateWatchProgress(String movieId, int progressSeconds, {bool completed = false}) async {
+    try {
+      await ApiClient.post('/watch-history', body: {
+        'movie_id': movieId,
+        'progress_seconds': progressSeconds,
+        'completed': completed,
+      });
+    } catch (_) {
+      // Silent fail — progress updates are non-critical
+    }
+  }
+
+  /// Add a bookmark for a movie.
+  static Future<bool> addBookmark(String movieId) async {
+    try {
+      final response = await ApiClient.post('/bookmarks', body: {
+        'movie_id': movieId,
+      });
+      return response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Remove a bookmark for a movie.
+  static Future<bool> removeBookmark(String movieId) async {
+    try {
+      final response = await ApiClient.delete('/bookmarks/$movieId');
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Get bookmarked movie IDs for the current user.
+  static Future<Set<String>> getBookmarkedIds() async {
+    try {
+      final response = await ApiClient.get('/bookmarks', queryParams: {
+        'page': '1',
+        'page_size': '100',
+      });
+      if (response.statusCode == 401) return {};
+      final data = jsonDecode(response.body);
+      final List entries = data['data'] ?? [];
+      return entries.map((e) => e['movie_id']?.toString() ?? '').toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
   /// Fetch stream sources (magnet links) for a specific movie.
   static Future<List<VideoSource>> getStreamSources(String movieId) async {
     final response = await ApiClient.get('/movies/$movieId/stream-sources');
