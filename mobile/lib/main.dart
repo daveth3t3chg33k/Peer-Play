@@ -40,8 +40,16 @@ class PeerPlayApp extends StatelessWidget {
           return MaterialPageRoute(builder: (_) => MovieDetailScreen(movieId: movieId), settings: settings);
         }
         if (settings.name == '/player') {
-          final args = settings.arguments as Map<String, String>;
-          return MaterialPageRoute(builder: (_) => PlayerScreen(movieId: args['movieId']!, title: args['title']!), settings: settings, fullscreenDialog: true);
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => PlayerScreen(
+              movieId: args['movieId'] as String,
+              title: args['title'] as String,
+              magnetLink: args['magnetLink'] as String?,
+            ),
+            settings: settings,
+            fullscreenDialog: true,
+          );
         }
         return null;
       },

@@ -14,6 +14,8 @@ class MovieDetailScreen extends StatefulWidget {
 class _MovieDetailScreenState extends State<MovieDetailScreen> {
   Movie? _movie;
   bool _loading = true;
+  List<VideoSource> _sources = [];
+  List<CastMember> _cast = [];
 
   @override
   void initState() {
@@ -23,8 +25,19 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   Future<void> _loadMovie() async {
     try {
-      final movie = await MovieService.getMovie(widget.movieId);
-      if (mounted) setState(() { _movie = movie; _loading = false; });
+      final results = await Future.wait([
+        MovieService.getMovie(widget.movieId),
+        MovieService.getStreamSources(widget.movieId).catchError((_) => <VideoSource>[]),
+        MovieService.getMovieCredits(widget.movieId).catchError((_) => <CastMember>[]),
+      ]);
+      if (mounted) {
+        setState(() {
+          _movie = results[0] as Movie;
+          _sources = results[1] as List<VideoSource>;
+          _cast = results[2] as List<CastMember>;
+          _loading = false;
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
@@ -60,7 +73,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               onTap: () => Navigator.pop(context),
               child: Container(
                 margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
                 child: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
               ),
             ),
@@ -136,7 +149,17 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pushNamed(context, '/player', arguments: {'movieId': movie.id, 'title': movie.title}),
+                          onPressed: () {
+                            String? magnetLink;
+                            if (_sources.isNotEmpty) {
+                              magnetLink = _sources.first.magnetLink;
+                            }
+                            Navigator.pushNamed(context, '/player', arguments: {
+                              'movieId': movie.id,
+                              'title': movie.title,
+                              'magnetLink': magnetLink,
+                            });
+                          },
                           icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
                           label: const Text('Play', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, padding: const EdgeInsets.symmetric(vertical: 14)),
@@ -161,13 +184,81 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     style: const TextStyle(fontSize: AppTheme.body, color: AppTheme.textSecondary, height: 1.6),
                   ),
 
-                  // Sources
-                  if (movie.sources != null && movie.sources!.isNotEmpty) ...[
+                  // Cast & Crew
+                  if (_cast.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.xl),
-                    const Text('Available Sources', style: TextStyle(fontSize: AppTheme.subtitle, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                    Text(
+                      'CAST',
+                      style: TextStyle(fontSize: AppTheme.caption, fontWeight: FontWeight.w700, color: AppTheme.textMuted, letterSpacing: 1),
+                    ),
                     const SizedBox(height: AppTheme.md),
-                    ...movie.sources!.map((s) => GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/player', arguments: {'movieId': movie.id, 'title': movie.title}),
+                    SizedBox(
+                      height: 130,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: _cast.length,
+                        separatorBuilder: (_, __) => const SizedBox(width: AppTheme.md),
+                        itemBuilder: (context, index) {
+                          final member = _cast[index];
+                          return SizedBox(
+                            width: 80,
+                            child: Column(
+                              children: [
+                                // Profile photo
+                                Container(
+                                  width: 72,
+                                  height: 72,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surface,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: member.profileUrl.isNotEmpty
+                                      ? Image.network(
+                                          member.profileUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => _buildAvatarPlaceholder(member.name),
+                                        )
+                                      : _buildAvatarPlaceholder(member.name),
+                                ),
+                                const SizedBox(height: AppTheme.sm),
+                                Text(
+                                  member.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: AppTheme.small, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  member.character,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+
+                  // Sources
+                  if (_sources.isNotEmpty) ...[
+                    const SizedBox(height: AppTheme.xl),
+                    Text(
+                      'AVAILABLE SOURCES',
+                      style: TextStyle(fontSize: AppTheme.caption, fontWeight: FontWeight.w700, color: AppTheme.textMuted, letterSpacing: 1),
+                    ),
+                    const SizedBox(height: AppTheme.md),
+                    ..._sources.map((s) => GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/player', arguments: {
+                        'movieId': movie.id,
+                        'title': movie.title,
+                        'magnetLink': s.magnetLink,
+                      }),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: AppTheme.sm),
                         padding: const EdgeInsets.all(AppTheme.base),
@@ -213,6 +304,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     return Container(color: AppTheme.surface, child: Center(child: Text(movie.title.substring(0, 1.clamp(0, movie.title.length)), style: TextStyle(fontSize: 60, fontWeight: FontWeight.w900, color: AppTheme.textMuted))));
   }
 
+  Widget _buildAvatarPlaceholder(String name) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Container(
+      color: AppTheme.surfaceElevated,
+      child: Center(
+        child: Text(initial, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.textMuted)),
+      ),
+    );
+  }
+
   Widget _buildIconAction(IconData icon, bool active, VoidCallback? onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -220,7 +321,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          color: active ? AppTheme.primary.withOpacity(0.2) : AppTheme.surface,
+          color: active ? AppTheme.primary.withValues(alpha: 0.2) : AppTheme.surface,
           shape: BoxShape.circle,
           border: Border.all(color: active ? AppTheme.primary : AppTheme.divider),
         ),

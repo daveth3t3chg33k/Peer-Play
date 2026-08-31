@@ -125,6 +125,44 @@ class Subtitle {
   }
 }
 
+class CastMember {
+  final String id;
+  final String movieId;
+  final String name;
+  final String character;
+  final String profilePath;
+  final String department;
+  final int order;
+
+  CastMember({
+    required this.id,
+    required this.movieId,
+    required this.name,
+    required this.character,
+    required this.profilePath,
+    required this.department,
+    required this.order,
+  });
+
+  factory CastMember.fromJson(Map<String, dynamic> json) {
+    return CastMember(
+      id: json['id']?.toString() ?? '',
+      movieId: json['movie_id']?.toString() ?? '',
+      name: json['name'] ?? '',
+      character: json['character'] ?? '',
+      profilePath: json['profile_path'] ?? '',
+      department: json['department'] ?? 'Acting',
+      order: json['sort_order'] ?? json['order'] ?? 0,
+    );
+  }
+
+  String get profileUrl {
+    if (profilePath.isEmpty) return '';
+    if (profilePath.startsWith('http')) return profilePath;
+    return 'https://image.tmdb.org/t/p/w185$profilePath';
+  }
+}
+
 class PaginatedResponse<T> {
   final List<T> data;
   final int page;

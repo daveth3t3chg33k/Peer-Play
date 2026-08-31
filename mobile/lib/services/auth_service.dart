@@ -53,6 +53,22 @@ class AuthService {
     return token != null && token.isNotEmpty;
   }
 
+  /// Get the currently stored user profile (from secure storage).
+  static Future<User?> getCurrentUser() async {
+    final userJson = await _storage.read(key: 'user');
+    if (userJson == null) return null;
+    try {
+      return User.fromJson(jsonDecode(userJson));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Get the stored JWT token (for API calls that need it).
+  static Future<String?> getToken() async {
+    return await _storage.read(key: 'auth_token');
+  }
+
   static Future<String> _getDeviceFingerprint() async {
     var fingerprint = await _storage.read(key: 'device_fingerprint');
     if (fingerprint != null) return fingerprint;

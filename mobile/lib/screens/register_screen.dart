@@ -54,7 +54,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await AuthService.register(email, password, name);
       if (mounted) Navigator.pushReplacementNamed(context, '/main');
     } catch (e) {
-      setState(() => _error = 'Registration failed. Please try again.');
+      final msg = e.toString();
+      String friendly = 'Registration failed. Please try again.';
+      if (msg.contains('409')) friendly = 'An account with this email already exists';
+      else if (msg.contains('400')) friendly = 'Please check your input';
+      else if (msg.contains('500')) friendly = 'Server error. Try again later.';
+      else if (msg.contains('Connection') || msg.contains('timeout')) friendly = 'No connection to server';
+      setState(() => _error = friendly);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

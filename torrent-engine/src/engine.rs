@@ -1,6 +1,6 @@
 //! Torrent engine — wraps librqbit with UniFFI-exported types.
 
-use librqbit::{Session, AddTorrent};
+use librqbit::{Session, AddTorrent, SessionOptions};
 use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -99,14 +99,26 @@ pub struct TorrentEngine {
 impl TorrentEngine {
     /// Create a new torrent engine.
     #[uniffi::constructor]
-    pub async fn new(download_dir: String, _listen_port: u32) -> Result<Arc<Self>, TorrentError> {
+    pub fn new(download_dir: String, _listen_port: u32) -> Result<Arc<Self>, TorrentError> {
         let dir = PathBuf::from(&download_dir);
         std::fs::create_dir_all(&dir).map_err(|e| TorrentError::Internal(e.to_string()))?;
 
-        // librqbit 9.0: Session::new() returns Arc<Session> via BoxFuture
-        let session: Arc<Session> = Session::new(dir.clone())
-            .await
+        // Create a temporary tokio runtime to initialize the librqbit Session,
+        // then drop it. The Session itself is runtime-agnostic after init.
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
             .map_err(|e| TorrentError::Internal(e.to_string()))?;
+
+        let session: Arc<Session> = rt.block_on(async {
+            let opts = SessionOptions {
+                dht: None, // Disable DHT to avoid UDP bind errors on emulators/devices
+                ..Default::default()
+            };
+            Session::new_with_opts(dir.clone(), opts)
+                .await
+                .map_err(|e| TorrentError::Internal(e.to_string()))
+        })?;
 
         let inner = EngineInner {
             session: Some(session),

@@ -36,9 +36,18 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       await AuthService.login(email, password);
-      if (mounted) Navigator.pushReplacementNamed(context, '/main');
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/main');
+      }
     } catch (e) {
-      setState(() => _error = 'Invalid email or password');
+      final msg = e.toString();
+      String friendly = 'Invalid email or password';
+      if (msg.contains('401')) friendly = 'Invalid email or password';
+      else if (msg.contains('409')) friendly = 'Account already exists';
+      else if (msg.contains('400')) friendly = 'Please check your input';
+      else if (msg.contains('500')) friendly = 'Server error. Try again later.';
+      else if (msg.contains('Connection') || msg.contains('timeout')) friendly = 'No connection to server';
+      setState(() => _error = friendly);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

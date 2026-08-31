@@ -78,6 +78,18 @@ type Bookmark struct {
 	Movie     *Movie    `json:"movie,omitempty"`
 }
 
+// CastMember represents an actor/crew member for a movie
+type CastMember struct {
+	ID           uuid.UUID `json:"id" db:"id"`
+	MovieID      uuid.UUID `json:"movie_id" db:"movie_id"`
+	Name         string    `json:"name" db:"name"`
+	Character    string    `json:"character" db:"character"`
+	ProfilePath  string    `json:"profile_path" db:"profile_path"`
+	Department   string    `json:"department" db:"department"`
+	Order        int       `json:"order" db:"order"`
+	CreatedAt    time.Time `json:"created_at" db:"created_at"`
+}
+
 // Pagination holds pagination parameters
 type Pagination struct {
 	Page     int `json:"page"`

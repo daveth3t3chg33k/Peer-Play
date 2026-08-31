@@ -71,4 +71,20 @@ class MovieService {
     final response = await ApiClient.get('/movies/search', queryParams: params);
     return PaginatedResponse.fromJson(jsonDecode(response.body), Movie.fromJson);
   }
+
+  /// Fetch cast and crew for a specific movie.
+  static Future<List<CastMember>> getMovieCredits(String movieId) async {
+    final response = await ApiClient.get('/movies/$movieId/credits');
+    final data = jsonDecode(response.body);
+    final cast = data['cast'] as List<dynamic>? ?? [];
+    return cast.map((e) => CastMember.fromJson(e)).toList();
+  }
+
+  /// Fetch stream sources (magnet links) for a specific movie.
+  static Future<List<VideoSource>> getStreamSources(String movieId) async {
+    final response = await ApiClient.get('/movies/$movieId/stream-sources');
+    final data = jsonDecode(response.body);
+    final sources = data['sources'] as List<dynamic>? ?? [];
+    return sources.map((e) => VideoSource.fromJson(e)).toList();
+  }
 }

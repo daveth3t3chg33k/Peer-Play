@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../config/theme.dart';
+import '../models/movie.dart';
 import '../services/auth_service.dart';
 
-/// Settings screen — clean grouped list layout
+/// Settings screen — clean grouped list layout, reacts to auth state.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -12,6 +13,19 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoDl = false;
+  User? _user;
+  bool _authChecked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await AuthService.getCurrentUser();
+    if (mounted) setState(() { _user = user; _authChecked = true; });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,16 +39,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Text('Settings', style: TextStyle(fontSize: AppTheme.heading, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, letterSpacing: -0.5)),
           ),
 
-          _buildSection('Account', [
-            _buildRow(Icons.person_outline_rounded, 'Profile', trailing: const Text('Edit', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
-            _buildDivider(),
-            _buildRow(Icons.mail_outline_rounded, 'Email', trailing: const Text('user@email.com', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
-            _buildDivider(),
-            _buildRow(Icons.logout_rounded, 'Sign Out', trailing: null, onTap: () async {
-              await AuthService.logout();
-              if (mounted) Navigator.pushReplacementNamed(context, '/login');
-            }, iconColor: AppTheme.primary),
-          ]),
+          // Account section — shows login/register or profile based on auth state
+          _buildSection('Account', _authChecked
+            ? (_user != null ? _buildAuthenticatedAccount() : _buildUnauthenticatedAccount())
+            : [_buildRow(Icons.hourglass_empty_rounded, 'Loading...')]
+          ),
 
           _buildSection('Downloads', [
             _buildRow(Icons.download_rounded, 'Auto-download on WiFi', trailing: Switch(
@@ -65,6 +74,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildAuthenticatedAccount() {
+    return [
+      _buildRow(Icons.person_outline_rounded, 'Profile', trailing: Text(_user?.displayName ?? 'User', style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
+      _buildDivider(),
+      _buildRow(Icons.mail_outline_rounded, 'Email', trailing: Text(_user?.email ?? '', style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body), overflow: TextOverflow.ellipsis)),
+      _buildDivider(),
+      _buildRow(Icons.logout_rounded, 'Sign Out', trailing: null, onTap: () async {
+        await AuthService.logout();
+        if (mounted) setState(() => _user = null);
+      }, iconColor: AppTheme.primary),
+    ];
+  }
+
+  List<Widget> _buildUnauthenticatedAccount() {
+    return [
+      _buildRow(Icons.login_rounded, 'Sign In', trailing: null, onTap: () async {
+        await Navigator.pushNamed(context, '/login');
+        // Refresh auth state after returning from login
+        _loadUser();
+      }, iconColor: AppTheme.primary),
+      _buildDivider(),
+      _buildRow(Icons.person_add_outlined, 'Create Account', trailing: null, onTap: () async {
+        await Navigator.pushNamed(context, '/register');
+        // Refresh auth state after returning from register
+        _loadUser();
+      }),
+      const SizedBox(height: AppTheme.sm),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTheme.base),
+        child: Text(
+          'Sign in to save bookmarks, watch history, and sync across devices.',
+          style: TextStyle(fontSize: AppTheme.small, color: AppTheme.textMuted, height: 1.4),
+        ),
+      ),
+    ];
   }
 
   Widget _buildSection(String title, List<Widget> children) {
