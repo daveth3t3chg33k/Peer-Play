@@ -158,6 +158,8 @@ class TorrentModule(private val context: Context) : MethodChannel.MethodCallHand
             scope.launch {
                 try {
                     val info = eng.getTorrentStatus(torrentId)
+                    // NOTE: UniFFI maps u64/u32 to Kotlin ULong/UInt, which the Flutter
+                    // StandardMessageCodec cannot serialize. Convert to signed Long.
                     val statusMap = mapOf(
                         "progress" to when (val s = info.status) {
                             is TorrentStatus.Downloading -> s.progressPercent
@@ -165,10 +167,10 @@ class TorrentModule(private val context: Context) : MethodChannel.MethodCallHand
                             is TorrentStatus.Completed -> 100.0
                             else -> 0.0
                         },
-                        "download_speed" to info.downloadSpeed,
-                        "upload_speed" to info.uploadSpeed,
+                        "download_speed" to info.downloadSpeed.toLong(),
+                        "upload_speed" to info.uploadSpeed.toLong(),
                         "peer_count" to info.peerCount.toLong(),
-                        "file_size" to info.totalSizeBytes,
+                        "file_size" to info.totalSizeBytes.toLong(),
                         "state" to info.status.toString()
                     )
                     withContext(Dispatchers.Main) { result.success(statusMap) }

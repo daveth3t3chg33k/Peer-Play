@@ -865,7 +865,7 @@ private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
 }
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_add_torrent() != 20289) {
+    if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_add_torrent() != 7965) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_get_stats() != 29725) {
@@ -889,7 +889,7 @@ private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
     if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_resume_all() != 43340) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_start_proxy() != 21271) {
+    if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_start_proxy() != 16293) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_peerplay_torrent_engine_checksum_method_torrentengine_stop_proxy() != 11881) {
@@ -1323,7 +1323,7 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 public interface TorrentEngineInterface {
     
     /**
-     * Add a torrent by magnet link or URL.
+     * Add a torrent by magnet link or URL and pick its streamable file.
      */
     suspend fun `addTorrent`(`url`: kotlin.String): kotlin.String
     
@@ -1363,7 +1363,7 @@ public interface TorrentEngineInterface {
     suspend fun `resumeAll`()
     
     /**
-     * Start the local HTTP proxy server for streaming.
+     * Start the local HTTP proxy server for streaming. Returns the bound port.
      */
     suspend fun `startProxy`(`port`: kotlin.UInt): kotlin.UInt
     
@@ -1494,7 +1494,7 @@ open class TorrentEngine: Disposable, AutoCloseable, TorrentEngineInterface
 
     
     /**
-     * Add a torrent by magnet link or URL.
+     * Add a torrent by magnet link or URL and pick its streamable file.
      */
     @Throws(TorrentException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -1693,7 +1693,7 @@ open class TorrentEngine: Disposable, AutoCloseable, TorrentEngineInterface
 
     
     /**
-     * Start the local HTTP proxy server for streaming.
+     * Start the local HTTP proxy server for streaming. Returns the bound port.
      */
     @Throws(TorrentException::class)
     @Suppress("ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
