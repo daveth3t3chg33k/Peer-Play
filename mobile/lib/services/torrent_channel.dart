@@ -20,14 +20,45 @@ class TorrentStatusInfo {
   });
 
   factory TorrentStatusInfo.fromMap(Map<dynamic, dynamic> map) {
+    int asInt(dynamic value) => value is num ? value.toInt() : 0;
     return TorrentStatusInfo(
       progress: (map['progress'] as num?)?.toDouble() ?? 0.0,
-      downloadSpeed: map['download_speed'] as int? ?? 0,
-      uploadSpeed: map['upload_speed'] as int? ?? 0,
-      peerCount: map['peer_count'] as int? ?? 0,
-      fileSize: map['file_size'] as int? ?? 0,
-      state: map['state'] as String? ?? 'unknown',
+      downloadSpeed: asInt(map['download_speed']),
+      uploadSpeed: asInt(map['upload_speed']),
+      peerCount: asInt(map['peer_count']),
+      fileSize: asInt(map['file_size']),
+      state: map['state']?.toString() ?? 'unknown',
     );
+  }
+
+  /// Progress as a 0..1 fraction, clamped so bad native values cannot break
+  /// the progress indicator.
+  double get progressFraction => (progress.isFinite ? progress / 100 : 0.0).clamp(0.0, 1.0);
+
+  /// Short human-readable state, stripped of UniFFI's Kotlin `toString()`
+  /// decoration (e.g. `Downloading(progressPercent=12.5)`).
+  String get stateLabel {
+    final name = state.split('(').first.trim();
+    switch (name) {
+      case 'Downloading':
+        return 'Downloading';
+      case 'DownloadingMetadata':
+        return 'Finding peers';
+      case 'Streaming':
+        return 'Streaming';
+      case 'Completed':
+        return 'Ready';
+      case 'Paused':
+        return 'Paused';
+      case 'Error':
+        return 'Engine error';
+      case 'unknown':
+      case 'stub':
+      case '':
+        return '';
+      default:
+        return name;
+    }
   }
 
   String get fileSizeFormatted {
@@ -53,15 +84,18 @@ class TorrentStatusInfo {
 /// Communicates with TorrentModule.kt on Android via MethodChannel.
 class TorrentChannel {
   static const _channel = MethodChannel('com.peerplay/torrent');
-  static bool _initialized = false;
 
   /// Initialize the torrent engine.
+  ///
+  /// When [downloadDir] is null the native side picks an app-private directory
+  /// (`context.filesDir/torrents`). Do not default to external storage here:
+  /// `/storage/emulated/0/...` is not writable under Android's scoped storage,
+  /// so the engine could not create files and every stream request 404'd.
   static Future<bool> initialize({String? downloadDir}) async {
     try {
-      await _channel.invokeMethod('initialize', {
-        'download_dir': downloadDir ?? '/storage/emulated/0/PeerPlay/downloads',
+      await _channel.invokeMethod('initialize', <String, dynamic>{
+        if (downloadDir != null) 'download_dir': downloadDir,
       });
-      _initialized = true;
       return true;
     } catch (e) {
       print('[TorrentChannel] initialize failed: $e');
@@ -203,7 +237,6 @@ class TorrentChannel {
   static Future<void> dispose() async {
     try {
       await _channel.invokeMethod('dispose');
-      _initialized = false;
     } catch (e) {
       print('[TorrentChannel] dispose failed: $e');
     }

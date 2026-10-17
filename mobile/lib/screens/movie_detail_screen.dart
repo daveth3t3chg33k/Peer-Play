@@ -127,6 +127,32 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
+  /// Stream sources that can actually be played (magnet present).
+  List<VideoSource> get _playableSources => _sources
+      .where((s) => (s.magnetLink ?? '').trim().isNotEmpty)
+      .toList(growable: false);
+
+  void _playMovie() {
+    final movie = _movie;
+    if (movie == null) return;
+
+    final playable = _playableSources;
+    if (playable.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No stream source is available for this title yet.'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.pushNamed(context, '/player', arguments: {
+      'movieId': movie.id,
+      'title': movie.title,
+      'magnetLink': playable.first.magnetLink!.trim(),
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final sw = MediaQuery.of(context).size.width;
@@ -250,17 +276,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            String? magnetLink;
-                            if (_sources.isNotEmpty) {
-                              magnetLink = _sources.first.magnetLink;
-                            }
-                            Navigator.pushNamed(context, '/player', arguments: {
-                              'movieId': movie.id,
-                              'title': movie.title,
-                              'magnetLink': magnetLink,
-                            });
-                          },
+                          key: const Key('movie-play-button'),
+                          onPressed: _playMovie,
                           icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 22),
                           label: const Text('Play', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                           style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, padding: const EdgeInsets.symmetric(vertical: 14)),
@@ -351,18 +368,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   ],
 
                   // Sources
-                  if (_sources.isNotEmpty) ...[
+                  if (_playableSources.isNotEmpty) ...[
                     const SizedBox(height: AppTheme.xl),
                     Text(
                       'AVAILABLE SOURCES',
                       style: TextStyle(fontSize: AppTheme.caption, fontWeight: FontWeight.w700, color: AppTheme.textMuted, letterSpacing: 1),
                     ),
                     const SizedBox(height: AppTheme.md),
-                    ..._sources.map((s) => GestureDetector(
+                    ..._playableSources.map((s) => GestureDetector(
                       onTap: () => Navigator.pushNamed(context, '/player', arguments: {
                         'movieId': movie.id,
                         'title': movie.title,
-                        'magnetLink': s.magnetLink,
+                        'magnetLink': s.magnetLink!.trim(),
                       }),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: AppTheme.sm),
