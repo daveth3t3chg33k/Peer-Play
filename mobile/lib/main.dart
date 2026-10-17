@@ -46,6 +46,7 @@ class PeerPlayApp extends StatelessWidget {
               movieId: args['movieId'] as String,
               title: args['title'] as String,
               magnetLink: args['magnetLink'] as String?,
+              directUrl: args['directUrl'] as String?,
             ),
             settings: settings,
             fullscreenDialog: true,
