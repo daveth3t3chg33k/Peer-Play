@@ -52,7 +52,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     try {
       await AuthService.register(email, password, name);
-      if (mounted) Navigator.pushReplacementNamed(context, '/main');
+      if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       final msg = e.toString();
       String friendly = 'Registration failed. Please try again.';

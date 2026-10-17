@@ -17,8 +17,9 @@ type Movie struct {
 	BackdropURL     string        `json:"backdrop_url" db:"backdrop_url"`
 	DurationMinutes int           `json:"duration_minutes" db:"duration_minutes"`
 	Rating          float64       `json:"rating" db:"rating"`
-	InfoHash        string        `json:"info_hash,omitempty" db:"info_hash"`
-	Category        string        `json:"category" db:"category"`
+	InfoHash          string        `json:"info_hash,omitempty" db:"info_hash"`
+	Category          string        `json:"category" db:"category"`
+	YoutubeTrailerKey string        `json:"youtube_trailer_key,omitempty" db:"youtube_trailer_key"`
 	CreatedAt       time.Time     `json:"created_at" db:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at" db:"updated_at"`
 	Sources         []VideoSource `json:"sources,omitempty"`

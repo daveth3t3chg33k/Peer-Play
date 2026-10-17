@@ -41,6 +41,13 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  static Future<http.Response> delete(String path) async {
+    final uri = Uri.parse('$_baseUrl$_apiPrefix$path');
+    final headers = await _authHeaders();
+    final response = await _client.delete(uri, headers: headers).timeout(_timeout);
+    return _handleResponse(response);
+  }
+
   static http.Response _handleResponse(http.Response response) {
     if (response.statusCode == 401) {
       // Only delete token on 401 if it's a user-specific endpoint (not movie browsing)

@@ -18,6 +18,8 @@ tokio = { version = "1", features = ["full"] }
 
 # HTTP proxy server
 warp = "0.3"
+tokio-util = { version = "0.7", features = ["io"] }
+tokio-stream = { version = "0.1", features = ["net"] }
 
 # UniFFI for Flutter bindings
 uniffi = { version = "0.32", features = ["cli"] }

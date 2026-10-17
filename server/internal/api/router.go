@@ -12,6 +12,7 @@ import (
 	"github.com/peerplay/server/internal/dht"
 	"github.com/peerplay/server/internal/middleware"
 	"github.com/peerplay/server/internal/repository"
+	"github.com/peerplay/server/internal/tmdb"
 )
 
 // Router holds all dependencies for the API
@@ -21,6 +22,7 @@ type Router struct {
 	userRepo        repository.UserRepository
 	userContentRepo repository.UserContentRepository
 	dhtNode         *dht.Node
+	tmdbClient      *tmdb.Client
 	logger          *slog.Logger
 	startTime       time.Time
 }
@@ -34,12 +36,14 @@ func NewRouter(
 	dhtNode *dht.Node,
 	logger *slog.Logger,
 ) *Router {
+	tmdbClient := tmdb.NewClient(cfg.TMDB.APIKey, cfg.TMDB.BaseURL)
 	return &Router{
 		cfg:             cfg,
 		movieRepo:       movieRepo,
 		userRepo:        userRepo,
 		userContentRepo: userContentRepo,
 		dhtNode:         dhtNode,
+		tmdbClient:      tmdbClient,
 		logger:          logger,
 		startTime:       time.Now(),
 	}
@@ -85,7 +89,12 @@ func (r *Router) Setup() *chi.Mux {
 		v1.Get("/movies/{id}", r.handleGetMovie)
 		v1.Get("/movies/{id}/credits", r.handleGetMovieCredits)
 		v1.Get("/movies/{id}/stream-sources", r.handleGetStreamSources)
+		v1.Post("/movies/by-ids", r.handleGetMoviesByIDs)
+		v1.Post("/movies/sync", r.handleSyncMovies)
+		v1.Get("/movies/sync/status", r.handleGetSyncStatus)
 		v1.Get("/movies/search", r.handleSearchMovies)
+		v1.Post("/movies/update-trailer-keys", r.handleUpdateTrailerKeys)
+		v1.Get("/movies/update-trailer-keys/status", r.handleGetTrailerUpdateStatus)
 
 		// Protected routes — require authentication
 		v1.Group(func(protected chi.Router) {

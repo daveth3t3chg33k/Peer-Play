@@ -16,6 +16,7 @@ type Config struct {
 	Redis    RedisConfig
 	JWT      JWTConfig
 	DHT      DHTConfig
+	TMDB     TMDBConfig
 }
 
 // ServerConfig holds HTTP server settings
@@ -51,13 +52,17 @@ type JWTConfig struct {
 	Secret          string
 	ExpirationHours int
 	Issuer          string
+}// DHTConfig holds DHT bootstrap node settings
+type DHTConfig struct {
+    Port         int
+    BootstrapURL string
+    NodeID       string
 }
 
-// DHTConfig holds DHT bootstrap node settings
-type DHTConfig struct {
-	Port         int
-	BootstrapURL string
-	NodeID       string
+// TMDBConfig holds TMDB API settings
+type TMDBConfig struct {
+    APIKey  string
+    BaseURL string
 }
 
 // Load reads configuration from environment variables
@@ -100,12 +105,15 @@ func Load() (*Config, error) {
 			Secret:          getEnv("JWT_SECRET", "change-me-in-production"),
 			ExpirationHours: jwtExp,
 			Issuer:          "peerplay",
-		},
-		DHT: DHTConfig{
-			Port:         dhtPort,
-			BootstrapURL: getEnv("DHT_BOOTSTRAP_URL", ""),
-			NodeID:       getEnv("DHT_NODE_ID", ""),
-		},
+		},        DHT: DHTConfig{
+            Port:         dhtPort,
+            BootstrapURL: getEnv("DHT_BOOTSTRAP_URL", ""),
+            NodeID:       getEnv("DHT_NODE_ID", ""),
+        },
+        TMDB: TMDBConfig{
+            APIKey:  getEnv("TMDB_API_KEY", ""),
+            BaseURL: getEnv("TMDB_BASE_URL", "https://api.themoviedb.org/3"),
+        },
 	}
 
 	return cfg, nil

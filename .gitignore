@@ -32,3 +32,8 @@ Thumbs.db
 
 # Freebuff
 .freebuff/
+
+torrent-engine/target/
+mobile/linux/flutter/
+mobile/macos/Flutter/GeneratedPluginRegistrant.swift
+mobile/windows/flutter/

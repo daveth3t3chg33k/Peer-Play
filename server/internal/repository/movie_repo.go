@@ -22,6 +22,10 @@ type MovieRepository interface {
 	GetByCategory(ctx context.Context, category string, limit int) ([]models.Movie, error)
 	GetGenres(ctx context.Context) ([]string, error)
 	GetCastByMovieID(ctx context.Context, movieID uuid.UUID) ([]models.CastMember, error)
+	GetMoviesByIDs(ctx context.Context, ids []uuid.UUID) ([]models.Movie, error)
+	ExistsByTitle(ctx context.Context, title string) (bool, error)
+	GetWithoutTrailerKey(ctx context.Context) ([]models.Movie, error)
+	UpdateTrailerKey(ctx context.Context, id uuid.UUID, key string) error
 	Create(ctx context.Context, movie *models.Movie) error
 	Update(ctx context.Context, movie *models.Movie) error
 	Delete(ctx context.Context, id uuid.UUID) error
@@ -42,16 +46,15 @@ func (r *movieRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Mo
 
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, category, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
 		WHERE id = $1`
-
 	err := r.db.Pool.QueryRow(ctx, query, id).Scan(
-		&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseYear,
-		&movie.Genres, &movie.PosterURL, &movie.BackdropURL,
-		&movie.DurationMinutes, &movie.Rating, &movie.InfoHash,
-		&movie.Category, &movie.CreatedAt, &movie.UpdatedAt,
-	)
+			&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseYear,
+			&movie.Genres, &movie.PosterURL, &movie.BackdropURL,
+			&movie.DurationMinutes, &movie.Rating, &movie.InfoHash,
+			&movie.Category, &movie.YoutubeTrailerKey, &movie.CreatedAt, &movie.UpdatedAt,
+		)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("movie not found")
@@ -113,7 +116,7 @@ func (r *movieRepository) List(ctx context.Context, page, pageSize int) ([]model
 	// Fetch page
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, category, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
@@ -185,7 +188,7 @@ func (r *movieRepository) Search(ctx context.Context, q models.MovieSearchQuery)
 	dataArgs = append(dataArgs, q.PageSize, offset)
 	dataQuery := fmt.Sprintf(`
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, category, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies %s
 		ORDER BY ts_rank(to_tsvector('english', title), plainto_tsquery('english', $1)) DESC, created_at DESC
 		LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
@@ -207,7 +210,7 @@ func (r *movieRepository) Search(ctx context.Context, q models.MovieSearchQuery)
 func (r *movieRepository) GetTrending(ctx context.Context, limit int) ([]models.Movie, error) {
 	query := `
 		SELECT m.id, m.title, m.description, m.release_year, m.genres, m.poster_url,
-		       m.backdrop_url, m.duration_minutes, m.rating, m.info_hash, m.category, m.created_at, m.updated_at
+		       m.backdrop_url, m.duration_minutes, m.rating, m.info_hash, m.category, m.youtube_trailer_key, m.created_at, m.updated_at
 		FROM movies m
 		ORDER BY m.rating DESC NULLS LAST, m.created_at DESC
 		LIMIT $1`
@@ -224,7 +227,7 @@ func (r *movieRepository) GetTrending(ctx context.Context, limit int) ([]models.
 func (r *movieRepository) GetRecent(ctx context.Context, limit int) ([]models.Movie, error) {
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, category, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
 		ORDER BY created_at DESC
 		LIMIT $1`
@@ -241,7 +244,7 @@ func (r *movieRepository) GetRecent(ctx context.Context, limit int) ([]models.Mo
 func (r *movieRepository) GetByCategory(ctx context.Context, category string, limit int) ([]models.Movie, error) {
 	query := `
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
-		       duration_minutes, rating, info_hash, category, created_at, updated_at
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
 		WHERE category = $1
 		ORDER BY rating DESC NULLS LAST
@@ -275,6 +278,34 @@ func (r *movieRepository) GetGenres(ctx context.Context) ([]string, error) {
 	return genres, rows.Err()
 }
 
+func (r *movieRepository) GetMoviesByIDs(ctx context.Context, ids []uuid.UUID) ([]models.Movie, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	// Build placeholder list
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
+		FROM movies
+		WHERE id IN (%s)
+		ORDER BY created_at DESC`, strings.Join(placeholders, ","))
+
+	rows, err := r.db.Pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get movies by ids: %w", err)
+	}
+
+	return scanMovies(rows)
+}
+
 func (r *movieRepository) GetCastByMovieID(ctx context.Context, movieID uuid.UUID) ([]models.CastMember, error) {
 	query := `
 		SELECT id, movie_id, name, character, profile_path, department, sort_order, created_at
@@ -298,6 +329,44 @@ func (r *movieRepository) GetCastByMovieID(ctx context.Context, movieID uuid.UUI
 		members = append(members, m)
 	}
 	return members, rows.Err()
+}
+
+func (r *movieRepository) ExistsByTitle(ctx context.Context, title string) (bool, error) {
+	var exists bool
+	err := r.db.Pool.QueryRow(ctx,
+		"SELECT EXISTS(SELECT 1 FROM movies WHERE title = $1)", title,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check movie existence: %w", err)
+	}
+	return exists, nil
+}
+
+func (r *movieRepository) GetWithoutTrailerKey(ctx context.Context) ([]models.Movie, error) {
+	query := `
+		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
+		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
+		FROM movies
+		WHERE youtube_trailer_key = '' OR youtube_trailer_key IS NULL
+		ORDER BY title`
+
+	rows, err := r.db.Pool.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get movies without trailer key: %w", err)
+	}
+
+	return scanMovies(rows)
+}
+
+func (r *movieRepository) UpdateTrailerKey(ctx context.Context, id uuid.UUID, key string) error {
+	_, err := r.db.Pool.Exec(ctx,
+		"UPDATE movies SET youtube_trailer_key = $1, updated_at = NOW() WHERE id = $2",
+		key, id,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update trailer key: %w", err)
+	}
+	return nil
 }
 
 func (r *movieRepository) Create(ctx context.Context, movie *models.Movie) error {
@@ -352,7 +421,7 @@ func scanMovies(rows pgx.Rows) ([]models.Movie, error) {
 			&movie.ID, &movie.Title, &movie.Description, &movie.ReleaseYear,
 			&movie.Genres, &movie.PosterURL, &movie.BackdropURL,
 			&movie.DurationMinutes, &movie.Rating, &movie.InfoHash,
-			&movie.Category, &movie.CreatedAt, &movie.UpdatedAt,
+			&movie.Category, &movie.YoutubeTrailerKey, &movie.CreatedAt, &movie.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan movie: %w", err)
 		}

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../config/theme.dart';
 import '../models/movie.dart';
+import '../services/auth_service.dart';
 import '../services/movie_service.dart';
 
 class MovieDetailScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
   bool _loading = true;
   List<VideoSource> _sources = [];
   List<CastMember> _cast = [];
+  bool _isBookmarked = false;
 
   @override
   void initState() {
@@ -38,9 +41,90 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           _loading = false;
         });
       }
+      _checkBookmark();
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _checkBookmark() async {
+    if (_movie == null) return;
+    final isAuth = await AuthService.isAuthenticated();
+    if (!isAuth) return;
+    final ids = await MovieService.getBookmarkedIds();
+    if (mounted) setState(() => _isBookmarked = ids.contains(_movie!.id));
+  }
+
+  Future<void> _toggleBookmark() async {
+    final isAuth = await AuthService.isAuthenticated();
+    if (!isAuth) {
+      _showLoginPrompt();
+      return;
+    }
+    final wasBookmarked = _isBookmarked;
+    setState(() => _isBookmarked = !_isBookmarked);
+    bool success;
+    if (wasBookmarked) {
+      success = await MovieService.removeBookmark(_movie!.id);
+    } else {
+      success = await MovieService.addBookmark(_movie!.id);
+    }
+    if (!success && mounted) setState(() => _isBookmarked = wasBookmarked);
+  }
+
+  void _showLoginPrompt() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.rMd)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.bookmark_outline_rounded, color: AppTheme.primary, size: 24),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Sign in to bookmark',
+              style: TextStyle(fontSize: AppTheme.bodyLg, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Create an account to save movies to your list and sync across devices.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: AppTheme.small, color: AppTheme.textSecondary, height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Not now', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushNamed(context, '/login');
+            },
+            child: const Text('Sign In', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _playTrailer() {
+    if (_movie?.trailerKey == null) return;
+    final url = Uri.parse('https://www.youtube.com/watch?v=${_movie!.trailerKey}');
+    launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   @override
@@ -94,6 +178,23 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                       ),
                     ),
                   ),
+                  // Trailer play button overlay
+                  if (movie.trailerKey != null)
+                    Center(
+                      child: GestureDetector(
+                        onTap: _playTrailer,
+                        child: Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.6),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white24, width: 2),
+                          ),
+                          child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 30),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -166,7 +267,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                         ),
                       ),
                       const SizedBox(width: AppTheme.sm),
-                      _buildIconAction(Icons.bookmark_outline_rounded, false, null),
+                      _buildIconAction(
+                        _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
+                        _isBookmarked,
+                        _toggleBookmark,
+                      ),
                       const SizedBox(width: AppTheme.sm),
                       _buildIconAction(Icons.share_rounded, false, null),
                     ],

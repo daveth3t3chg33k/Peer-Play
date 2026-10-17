@@ -37,7 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await AuthService.login(email, password);
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/main');
+        // Pop back to caller — SettingsScreen will refresh auth state on return
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       final msg = e.toString();
