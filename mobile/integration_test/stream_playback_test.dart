@@ -43,7 +43,7 @@ void main() {
 
   testWidgets('plays a real movie through the P2P torrent pipeline',
       (tester) async {
-    app.main();
+    await app.main();
     final appReady = await _pumpUntil(
       tester,
       () => find.byType(BottomNavigationBar).evaluate().isNotEmpty,

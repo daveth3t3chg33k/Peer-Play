@@ -31,6 +31,23 @@ type MovieRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 
+// playableCondition limits catalogue queries to movies that have a real,
+// playable source (magnet or direct URL). Titles without one stay in the
+// database for history/bookmarks but are not advertised to clients.
+const playableCondition = `EXISTS (
+	SELECT 1 FROM video_sources vs
+	WHERE vs.movie_id = movies.id
+	  AND (COALESCE(vs.magnet_link, '') <> '' OR COALESCE(vs.stream_url, '') <> '')
+)`
+
+// playableConditionAliased is playableCondition for queries that alias the
+// movies table as `m`.
+const playableConditionAliased = `EXISTS (
+	SELECT 1 FROM video_sources vs
+	WHERE vs.movie_id = m.id
+	  AND (COALESCE(vs.magnet_link, '') <> '' OR COALESCE(vs.stream_url, '') <> '')
+)`
+
 // movieRepository is the Postgres implementation of MovieRepository
 type movieRepository struct {
 	db *DB
@@ -64,7 +81,7 @@ func (r *movieRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Mo
 
 	// Fetch sources
 	sourcesQuery := `
-		SELECT id, movie_id, quality, magnet_link, file_size_bytes, codec, created_at
+		SELECT id, movie_id, quality, magnet_link, stream_url, file_size_bytes, codec, created_at
 		FROM video_sources WHERE movie_id = $1`
 	rows, err := r.db.Pool.Query(ctx, sourcesQuery, id)
 	if err == nil {
@@ -72,7 +89,7 @@ func (r *movieRepository) GetByID(ctx context.Context, id uuid.UUID) (*models.Mo
 		for rows.Next() {
 			var src models.VideoSource
 			if err := rows.Scan(&src.ID, &src.MovieID, &src.Quality, &src.MagnetLink,
-				&src.FileSizeByte, &src.Codec, &src.CreatedAt); err == nil {
+				&src.StreamURL, &src.FileSizeByte, &src.Codec, &src.CreatedAt); err == nil {
 				movie.Sources = append(movie.Sources, src)
 			}
 		}
@@ -108,7 +125,9 @@ func (r *movieRepository) List(ctx context.Context, page, pageSize int) ([]model
 
 	// Count total
 	var total int
-	err := r.db.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM movies").Scan(&total)
+	err := r.db.Pool.QueryRow(ctx,
+		"SELECT COUNT(*) FROM movies WHERE "+playableCondition,
+	).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to count movies: %w", err)
 	}
@@ -118,6 +137,7 @@ func (r *movieRepository) List(ctx context.Context, page, pageSize int) ([]model
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
 		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
+		WHERE ` + playableCondition + `
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
 
@@ -168,10 +188,8 @@ func (r *movieRepository) Search(ctx context.Context, q models.MovieSearchQuery)
 		argIdx++
 	}
 
-	whereClause := ""
-	if len(conditions) > 0 {
-		whereClause = "WHERE " + strings.Join(conditions, " AND ")
-	}
+	conditions = append(conditions, playableCondition)
+	whereClause := "WHERE " + strings.Join(conditions, " AND ")
 
 	// Count
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM movies %s", whereClause)
@@ -186,12 +204,18 @@ func (r *movieRepository) Search(ctx context.Context, q models.MovieSearchQuery)
 	dataArgs := make([]interface{}, len(args), len(args)+2)
 	copy(dataArgs, args)
 	dataArgs = append(dataArgs, q.PageSize, offset)
+	// Rank by relevance only when there is a text query: with genre-only
+	// browsing $1 is the genres array, which plainto_tsquery cannot accept.
+	orderClause := "ORDER BY rating DESC NULLS LAST, created_at DESC"
+	if q.Query != "" {
+		orderClause = "ORDER BY ts_rank(to_tsvector('english', title), plainto_tsquery('english', $1)) DESC, created_at DESC"
+	}
 	dataQuery := fmt.Sprintf(`
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
 		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies %s
-		ORDER BY ts_rank(to_tsvector('english', title), plainto_tsquery('english', $1)) DESC, created_at DESC
-		LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
+		%s
+		LIMIT $%d OFFSET $%d`, whereClause, orderClause, argIdx, argIdx+1)
 
 	rows, err := r.db.Pool.Query(ctx, dataQuery, dataArgs...)
 	if err != nil {
@@ -212,6 +236,7 @@ func (r *movieRepository) GetTrending(ctx context.Context, limit int) ([]models.
 		SELECT m.id, m.title, m.description, m.release_year, m.genres, m.poster_url,
 		       m.backdrop_url, m.duration_minutes, m.rating, m.info_hash, m.category, m.youtube_trailer_key, m.created_at, m.updated_at
 		FROM movies m
+		WHERE ` + playableConditionAliased + `
 		ORDER BY m.rating DESC NULLS LAST, m.created_at DESC
 		LIMIT $1`
 
@@ -229,6 +254,7 @@ func (r *movieRepository) GetRecent(ctx context.Context, limit int) ([]models.Mo
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
 		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
+		WHERE ` + playableCondition + `
 		ORDER BY created_at DESC
 		LIMIT $1`
 
@@ -246,7 +272,7 @@ func (r *movieRepository) GetByCategory(ctx context.Context, category string, li
 		SELECT id, title, description, release_year, genres, poster_url, backdrop_url,
 		       duration_minutes, rating, info_hash, category, youtube_trailer_key, created_at, updated_at
 		FROM movies
-		WHERE category = $1
+		WHERE category = $1 AND ` + playableCondition + `
 		ORDER BY rating DESC NULLS LAST
 		LIMIT $2`
 
@@ -260,7 +286,7 @@ func (r *movieRepository) GetByCategory(ctx context.Context, category string, li
 }
 
 func (r *movieRepository) GetGenres(ctx context.Context) ([]string, error) {
-	query := `SELECT DISTINCT unnest(genres) FROM movies ORDER BY 1`
+	query := `SELECT DISTINCT unnest(genres) FROM movies WHERE ` + playableCondition + ` ORDER BY 1`
 	rows, err := r.db.Pool.Query(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get genres: %w", err)
