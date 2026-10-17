@@ -26,12 +26,13 @@ type Movie struct {
 	Subtitles       []Subtitle    `json:"subtitles,omitempty"`
 }
 
-// VideoSource represents a torrent/magnet source for a movie
+// VideoSource represents a torrent/magnet or direct-HTTP source for a movie
 type VideoSource struct {
 	ID           uuid.UUID `json:"id" db:"id"`
 	MovieID      uuid.UUID `json:"movie_id" db:"movie_id"`
 	Quality      string    `json:"quality" db:"quality"`
 	MagnetLink   string    `json:"magnet_link,omitempty" db:"magnet_link"`
+	StreamURL    string    `json:"stream_url,omitempty" db:"stream_url"`
 	FileSizeByte int64     `json:"file_size_bytes" db:"file_size_bytes"`
 	Codec        string    `json:"codec" db:"codec"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`

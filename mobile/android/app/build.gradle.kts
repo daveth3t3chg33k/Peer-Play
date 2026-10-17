@@ -34,6 +34,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+
+            // The Rust engine is reached through UniFFI's JNA bindings, which
+            // map Kotlin data classes to native structs reflectively. R8 renames
+            // those members, so keep shrinking off until keep rules are added
+            // and verified on device.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/api.dart';
 import '../config/theme.dart';
 import '../models/movie.dart';
 import '../services/auth_service.dart';
@@ -62,6 +63,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           _buildSection('Playback', [
             _buildRow(Icons.play_circle_outline_rounded, 'Auto-play Next', trailing: const Text('On', style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body))),
+          ]),
+
+          _buildSection('Network', [
+            _buildRow(
+              Icons.dns_outlined,
+              'Backend Server',
+              trailing: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 190),
+                child: Text(
+                  ApiClient.baseUrl,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.small),
+                ),
+              ),
+              onTap: _showBackendDialog,
+            ),
           ]),
 
           _buildSection('About', [
@@ -146,6 +164,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  void _showBackendDialog() {
+    final controller = TextEditingController(text: ApiClient.baseUrl);
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.rMd)),
+        title: const Text('Backend server', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'The app loads its catalogue and stream sources from this server. Use your computer\'s LAN address so the phone can reach it.',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: AppTheme.body, height: 1.4),
+            ),
+            const SizedBox(height: AppTheme.md),
+            TextField(
+              key: const Key('backend-url-field'),
+              controller: controller,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+              style: const TextStyle(color: AppTheme.textPrimary),
+              decoration: const InputDecoration(hintText: 'http://192.168.1.20:8080'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+          ),
+          TextButton(
+            onPressed: () async {
+              final ok = await ApiClient.setBaseUrl(controller.text);
+              if (ok) {
+                if (ctx.mounted) Navigator.pop(ctx, true);
+              } else if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid server URL, e.g. http://192.168.1.20:8080')),
+                );
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    ).then((changed) {
+      if (changed == true && mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Backend set to ${ApiClient.baseUrl}')),
+        );
+      }
+    });
   }
 
   void _showLogoutConfirmation() {

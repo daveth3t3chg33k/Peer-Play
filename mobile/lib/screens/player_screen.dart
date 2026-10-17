@@ -1,17 +1,21 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+
 import '../config/theme.dart';
+import '../services/auth_service.dart';
 import '../services/movie_service.dart';
+import '../services/playback_source_resolver.dart';
 import '../services/torrent_channel.dart';
 import '../services/torrent_service.dart';
-import '../services/auth_service.dart';
+import '../widgets/playback_status_panel.dart';
 
 /// Video player screen — Netflix-style controls with torrent streaming support.
 ///
-/// When a magnetLink is provided, the player downloads via P2P and streams
+/// When a magnet link is provided, the player downloads via P2P and streams
 /// through the local proxy. When only a URL is provided, it plays directly.
 class PlayerScreen extends StatefulWidget {
   final String movieId;
@@ -31,12 +35,14 @@ class PlayerScreen extends StatefulWidget {
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerScreenState extends State<PlayerScreen> with WidgetsBindingObserver {
   VideoPlayerController? _controller;
   bool _controlsVisible = true;
   bool _buffering = false;
   bool _loading = true;
   bool _error = false;
+  bool _starting = false;
+  bool _isTorrent = false;
   String _statusMessage = 'Preparing...';
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -44,120 +50,137 @@ class _PlayerScreenState extends State<PlayerScreen> {
   TorrentStatusInfo? _torrentStatus;
   StreamSubscription<TorrentStatusInfo>? _torrentSub;
   Timer? _progressTimer;
+  Timer? _hideControlsTimer;
   bool _isAuthenticated = false;
+  bool _disposed = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    WakelockPlus.enable();
+    unawaited(WakelockPlus.enable());
     _checkAuth();
     _startPlayback();
   }
 
+  /// Resolve the configured source and attach the video controller.
+  ///
+  /// Safe to call again from Retry: previous controllers, listeners and timers
+  /// are torn down first, and concurrent starts are ignored.
   Future<void> _startPlayback() async {
+    if (_starting) return;
+    _starting = true;
+
     try {
-      String? streamUrl;
+      await _teardownVideo();
+      if (!mounted) return;
+      setState(() {
+        _loading = true;
+        _error = false;
+        _buffering = false;
+        _torrentStatus = null;
+        _position = Duration.zero;
+        _duration = Duration.zero;
+        _statusMessage = 'Preparing...';
+      });
 
-      if (widget.magnetLink != null && widget.magnetLink!.isNotEmpty) {
-        // Torrent streaming path
-        setState(() => _statusMessage = 'Connecting to peers...');
+      _torrentSub ??= TorrentService.instance.statusStream.listen(_onTorrentStatus);
 
-        final initialized = await TorrentService.instance.initialize();
-        if (!initialized) {
-          setState(() {
-            _error = true;
-            _statusMessage = 'Failed to initialize torrent engine';
-          });
-          return;
-        }
+      final source = await PlaybackSourceResolver().resolve(
+        magnetLink: widget.magnetLink,
+        directUrl: widget.directUrl,
+        onStatus: (message) {
+          if (mounted) setState(() => _statusMessage = message);
+        },
+      );
+      if (!mounted) return;
 
-        final torrentId = await TorrentService.instance.startTorrent(widget.magnetLink!);
-        if (torrentId == null) {
-          setState(() {
-            _error = true;
-            _statusMessage = 'Failed to add torrent';
-          });
-          return;
-        }
-
-        // Listen to torrent status updates
-        _torrentSub = TorrentService.instance.statusStream.listen((status) {
-          if (mounted) {
-            setState(() {
-              _torrentStatus = status;
-              _statusMessage = 'Downloading ${status.fileSizeFormatted} '
-                  '(${status.downloadSpeedFormatted}) '
-                  '${status.progress.toStringAsFixed(0)}%';
-            });
-          }
-        });
-
-        // Start local proxy
-        final proxyPort = await TorrentChannel.startProxy(0); // 0 = auto-select port
-        if (proxyPort == 0) {
-          setState(() {
-            _error = true;
-            _statusMessage = 'Failed to start proxy server';
-          });
-          return;
-        }
-
-        // Wait a bit for the torrent to resolve metadata and start downloading
-        await Future.delayed(const Duration(seconds: 3));
-
-        streamUrl = await TorrentService.instance.getStreamUrl();
-        if (streamUrl == null) {
-          setState(() {
-            _error = true;
-            _statusMessage = 'Stream URL not available yet';
-          });
-          return;
-        }
-      } else if (widget.directUrl != null && widget.directUrl!.isNotEmpty) {
-        streamUrl = widget.directUrl!;
-      } else {
-        // Fallback demo
-        streamUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-      }
-
-      // Initialize video player
-      _controller = VideoPlayerController.networkUrl(Uri.parse(streamUrl))
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() {
-              _duration = _controller!.value.duration;
-              _loading = false;
-            });
-            _controller!.addListener(_onProgress);
-            _controller!.play();
-            _startProgressTracking();
-          }
-        }).catchError((error) {
-          if (mounted) {
-            setState(() {
-              _error = true;
-              _statusMessage = 'Failed to load video: $error';
-            });
-          }
-        });
+      _isTorrent = source.isTorrent;
+      await _attachVideo(source.uri);
+    } on PlaybackException catch (e) {
+      _fail(e.message);
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = true;
-          _statusMessage = 'Error: $e';
-        });
-      }
+      _fail('Playback failed: $e');
+    } finally {
+      _starting = false;
     }
   }
 
-  void _onProgress() {
-    if (!mounted || _controller == null) return;
-    final v = _controller!.value;
+  Future<void> _attachVideo(Uri uri) async {
+    final controller = VideoPlayerController.networkUrl(uri);
+    _controller = controller;
+
+    try {
+      await controller.initialize();
+    } catch (e) {
+      if (!identical(_controller, controller)) return;
+      _controller = null;
+      await controller.dispose();
+      _fail('Failed to load video: $e');
+      return;
+    }
+
+    // The screen can be popped while ExoPlayer is still preparing.
+    if (!mounted || _disposed) {
+      if (identical(_controller, controller)) _controller = null;
+      await controller.dispose();
+      return;
+    }
+
     setState(() {
-      _position = v.position;
-      _buffering = v.isBuffering;
+      _duration = controller.value.duration;
+      _loading = false;
+      _statusMessage = 'Preparing...';
     });
+    controller.addListener(_onProgress);
+    await controller.play();
+    _startProgressTracking();
+    _showControls();
+  }
+
+  void _onTorrentStatus(TorrentStatusInfo status) {
+    if (!mounted) return;
+    setState(() {
+      _torrentStatus = status;
+      // Only let download progress describe the wait; once video is playing
+      // the player controls are the source of truth.
+      if (_loading && !_error) {
+        _statusMessage = 'Downloading ${status.fileSizeFormatted} '
+            '(${status.downloadSpeedFormatted})';
+      }
+    });
+  }
+
+  void _fail(String message) {
+    if (!mounted) return;
+    setState(() {
+      _error = true;
+      _loading = false;
+      _buffering = false;
+      _statusMessage = message;
+    });
+  }
+
+  void _onProgress() {
+    final controller = _controller;
+    if (!mounted || controller == null) return;
+
+    final value = controller.value;
+    if (value.hasError) {
+      _fail('Stream interrupted: ${value.errorDescription ?? 'unknown error'}');
+      return;
+    }
+
+    // The controller notifies every frame; only rebuild when something the UI
+    // actually renders changed.
+    if (value.isBuffering != _buffering ||
+        value.position.inSeconds != _position.inSeconds) {
+      setState(() {
+        _position = value.position;
+        _buffering = value.isBuffering;
+      });
+    }
   }
 
   Future<void> _checkAuth() async {
@@ -173,44 +196,111 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _sendProgressUpdate() {
-    if (!_isAuthenticated || _controller == null) return;
-    final seconds = _position.inSeconds;
-    final total = _duration.inSeconds;
+    if (!_isAuthenticated || widget.movieId.isEmpty) return;
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+
+    final seconds = controller.value.position.inSeconds;
+    final total = controller.value.duration.inSeconds;
+    if (seconds <= 0) return;
     final completed = total > 0 && seconds >= total - 5;
-    MovieService.updateWatchProgress(
+
+    unawaited(MovieService.updateWatchProgress(
       widget.movieId,
       seconds,
       completed: completed,
-    );
+    ));
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      final controller = _controller;
+      if (controller != null && controller.value.isPlaying) {
+        controller.pause();
+        _sendProgressUpdate();
+        if (mounted) setState(() => _controlsVisible = true);
+      }
+    }
   }
 
   @override
   void dispose() {
     _sendProgressUpdate(); // Final progress update on exit
+    _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     _progressTimer?.cancel();
+    _hideControlsTimer?.cancel();
     _controller?.removeListener(_onProgress);
     _controller?.dispose();
+    _controller = null;
     _torrentSub?.cancel();
-    WakelockPlus.disable();
+    _torrentSub = null;
+    // Keep downloading for future playback, but stop the UI polling loop.
+    TorrentService.instance.stopStatusPolling();
+    unawaited(WakelockPlus.disable());
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
 
+  Future<void> _teardownVideo() async {
+    _progressTimer?.cancel();
+    _progressTimer = null;
+    _hideControlsTimer?.cancel();
+    _hideControlsTimer = null;
+
+    final controller = _controller;
+    _controller = null;
+    if (controller != null) {
+      controller.removeListener(_onProgress);
+      await controller.dispose();
+    }
+  }
+
   void _togglePlay() {
-    if (_controller == null) return;
-    setState(() {
-      _controller!.value.isPlaying ? _controller!.pause() : _controller!.play();
-    });
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    if (controller.value.isPlaying) {
+      controller.pause();
+      _sendProgressUpdate();
+    } else {
+      controller.play();
+    }
+    _showControls();
+  }
+
+  void _seekBy(Duration offset) {
+    final controller = _controller;
+    if (controller == null || !controller.value.isInitialized) return;
+    final target = controller.value.position + offset;
+    final clamped = target < Duration.zero
+        ? Duration.zero
+        : (target > _duration ? _duration : target);
+    controller.seekTo(clamped);
+    setState(() => _position = clamped);
     _showControls();
   }
 
   void _showControls() {
+    _hideControlsTimer?.cancel();
     setState(() => _controlsVisible = true);
-    Future.delayed(const Duration(seconds: 4), () {
-      if (mounted && _controller != null && _controller!.value.isPlaying) {
+    _hideControlsTimer = Timer(const Duration(seconds: 4), () {
+      final controller = _controller;
+      if (mounted && controller != null && controller.value.isPlaying) {
         setState(() => _controlsVisible = false);
       }
     });
+  }
+
+  void _toggleControls() {
+    if (_controller == null) return;
+    if (!_controlsVisible) {
+      _showControls();
+    } else {
+      _hideControlsTimer?.cancel();
+      setState(() => _controlsVisible = false);
+    }
   }
 
   String _fmt(Duration d) {
@@ -220,117 +310,70 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return h > 0 ? '$h:$m:$s' : '$m:$s';
   }
 
+  bool get _videoReady {
+    final controller = _controller;
+    return controller != null && controller.value.isInitialized;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final controller = _controller;
     final progress = _duration.inMilliseconds > 0
-        ? _position.inMilliseconds / _duration.inMilliseconds
+        ? (_position.inMilliseconds / _duration.inMilliseconds).clamp(0.0, 1.0)
         : 0.0;
 
     return Scaffold(
       backgroundColor: Colors.black,
       body: GestureDetector(
-        onTap: () {
-          if (_controller == null) return;
-          if (!_controlsVisible) {
-            _showControls();
-          } else {
-            setState(() => _controlsVisible = false);
-          }
-        },
+        onTap: _toggleControls,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Video
-            if (_controller != null && _controller!.value.isInitialized)
+            if (_videoReady)
               Center(
                 child: AspectRatio(
-                  aspectRatio: _controller!.value.aspectRatio,
-                  child: VideoPlayer(_controller!),
+                  aspectRatio: controller!.value.aspectRatio > 0
+                      ? controller.value.aspectRatio
+                      : 16 / 9,
+                  child: VideoPlayer(controller),
                 ),
               )
             else if (_error)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.white54, size: 48),
-                      const SizedBox(height: 16),
-                      Text(
-                        _statusMessage,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white54, fontSize: 14),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _error = false;
-                            _loading = true;
-                            _statusMessage = 'Retrying...';
-                          });
-                          _startPlayback();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
+              PlaybackStatusPanel(
+                isError: true,
+                message: _statusMessage,
+                torrentStatus: _torrentStatus,
+                onRetry: () => unawaited(_startPlayback()),
+                onBack: () => Navigator.pop(context),
               )
             else
-              // Loading / buffering / torrent status
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_loading || _buffering) ...[
-                      const CircularProgressIndicator(
+              PlaybackStatusPanel(
+                busy: _loading || _buffering,
+                message: _statusMessage,
+                torrentStatus: _torrentStatus,
+              ),
+
+            // Buffering pill while playing with the controls hidden.
+            if (_videoReady && _buffering && !_controlsVisible)
+              const Align(
+                alignment: Alignment.topCenter,
+                child: SafeArea(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: AppTheme.xl),
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
                         color: Colors.white,
                         strokeWidth: 2,
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                    Text(
-                      _statusMessage,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
                     ),
-                    if (_torrentStatus != null) ...[
-                      const SizedBox(height: 12),
-                      // Torrent download progress bar
-                      SizedBox(
-                        width: 200,
-                        child: Column(
-                          children: [
-                            LinearProgressIndicator(
-                              value: (_torrentStatus!.progress / 100).clamp(0.0, 1.0),
-                              backgroundColor: Colors.white24,
-                              color: AppTheme.primary,
-                              minHeight: 3,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '${_torrentStatus!.peerCount} peers | '
-                              '${_torrentStatus!.downloadSpeedFormatted}',
-                              style: const TextStyle(
-                                color: Colors.white38,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
 
             // Controls overlay
-            if (_controlsVisible && _controller != null && _controller!.value.isInitialized)
+            if (_controlsVisible && _videoReady)
               AnimatedOpacity(
                 opacity: _controlsVisible ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 200),
@@ -374,8 +417,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                               ),
                               // Torrent indicator
-                              if (_torrentStatus != null)
+                              if (_isTorrent || _torrentStatus != null)
                                 Container(
+                                  key: const Key('player-p2p-badge'),
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                   decoration: BoxDecoration(
                                     color: Colors.white12,
@@ -394,26 +438,44 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
 
-                        // Center play
-                        Center(
-                          child: GestureDetector(
-                            onTap: _togglePlay,
-                            child: Container(
-                              width: 64,
-                              height: 64,
-                              decoration: const BoxDecoration(
-                                color: Colors.white24,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _controller!.value.isPlaying
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                color: Colors.white,
-                                size: 36,
+                        // Center transport
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              key: const Key('player-skip-back'),
+                              onPressed: () => _seekBy(const Duration(seconds: -10)),
+                              iconSize: 30,
+                              icon: const Icon(Icons.replay_10_rounded, color: Colors.white),
+                            ),
+                            const SizedBox(width: AppTheme.base),
+                            GestureDetector(
+                              key: const Key('player-play-pause'),
+                              onTap: _togglePlay,
+                              child: Container(
+                                width: 64,
+                                height: 64,
+                                decoration: const BoxDecoration(
+                                  color: Colors.white24,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  controller!.value.isPlaying
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 36,
+                                ),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: AppTheme.base),
+                            IconButton(
+                              key: const Key('player-skip-forward'),
+                              onPressed: () => _seekBy(const Duration(seconds: 10)),
+                              iconSize: 30,
+                              icon: const Icon(Icons.forward_10_rounded, color: Colors.white),
+                            ),
+                          ],
                         ),
 
                         // Bottom controls
@@ -442,9 +504,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                         overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
                                       ),
                                       child: Slider(
-                                        value: progress.clamp(0.0, 1.0),
+                                        key: const Key('player-seek'),
+                                        value: progress,
                                         onChanged: (v) {
-                                          _controller!.seekTo(
+                                          controller.seekTo(
                                             Duration(milliseconds: (v * _duration.inMilliseconds).toInt()),
                                           );
                                           _showControls();
