@@ -127,10 +127,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
-  /// Stream sources that can actually be played (magnet present).
-  List<VideoSource> get _playableSources => _sources
-      .where((s) => (s.magnetLink ?? '').trim().isNotEmpty)
-      .toList(growable: false);
+  /// Stream sources that can actually be played (magnet or direct URL).
+  List<VideoSource> get _playableSources =>
+      _sources.where((s) => s.isPlayable).toList(growable: false);
 
   void _playMovie() {
     final movie = _movie;
@@ -146,10 +145,21 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       return;
     }
 
+    _openPlayer(playable.first);
+  }
+
+  void _openPlayer(VideoSource source) {
+    final movie = _movie;
+    if (movie == null) return;
     Navigator.pushNamed(context, '/player', arguments: {
       'movieId': movie.id,
       'title': movie.title,
-      'magnetLink': playable.first.magnetLink!.trim(),
+      'magnetLink': (source.magnetLink ?? '').trim().isEmpty
+          ? null
+          : source.magnetLink!.trim(),
+      'directUrl': (source.streamUrl ?? '').trim().isEmpty
+          ? null
+          : source.streamUrl!.trim(),
     });
   }
 
@@ -376,11 +386,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                     ),
                     const SizedBox(height: AppTheme.md),
                     ..._playableSources.map((s) => GestureDetector(
-                      onTap: () => Navigator.pushNamed(context, '/player', arguments: {
-                        'movieId': movie.id,
-                        'title': movie.title,
-                        'magnetLink': s.magnetLink!.trim(),
-                      }),
+                      onTap: () => _openPlayer(s),
                       child: Container(
                         margin: const EdgeInsets.only(bottom: AppTheme.sm),
                         padding: const EdgeInsets.all(AppTheme.base),

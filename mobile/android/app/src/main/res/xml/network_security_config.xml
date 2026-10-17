@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
+  Test-build network policy.
+
   The torrent engine streams video over plain HTTP on the loopback interface
-  (http://127.0.0.1:<proxy port>/stream/<id>), and the dev backend is served
-  over plain HTTP on 10.0.2.2. ExoPlayer uses the platform network stack, which
-  blocks cleartext traffic by default for targetSdk >= 28, so those hosts must
-  be explicitly allowed.
+  (http://127.0.0.1:<proxy port>/stream/<id>) and the development backend is
+  served over plain HTTP on the developer's LAN (e.g. http://192.168.100.38:8080).
+  ExoPlayer uses the platform network stack, which blocks cleartext traffic by
+  default for targetSdk >= 28.
+
+  Cleartext is permitted broadly here so a sideloaded test APK can be pointed at
+  any LAN backend without rebuilding. Production builds should narrow this to
+  the actual API host and rely on HTTPS.
 -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">127.0.0.1</domain>
-        <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="false">10.0.2.2</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

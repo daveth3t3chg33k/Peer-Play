@@ -1,16 +1,63 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClient {
   static const _storage = FlutterSecureStorage();
-  static const String _devBaseUrl = 'http://10.0.2.2:8080'; // Emulator localhost
-  static const String _prodBaseUrl = 'https://api.peerplay.app';
   static const String _apiPrefix = '/api/v1';
+
+  /// Default backend for the test builds. Override at build time with
+  /// `--dart-define=PEERPLAY_API_BASE_URL=http://host:8080`, or at runtime from
+  /// Settings → Backend Server.
+  static const String defaultBaseUrl = String.fromEnvironment(
+    'PEERPLAY_API_BASE_URL',
+    defaultValue: 'http://192.168.100.38:8080',
+  );
+
+  static const String _prefKey = 'api_base_url';
+  static String _baseUrl = defaultBaseUrl;
+
   static final _client = http.Client();
   static const Duration _timeout = Duration(seconds: 30);
 
-  static String get _baseUrl => _devBaseUrl;
+  static String get baseUrl => _baseUrl;
+
+  /// Load the saved backend URL. Call once before `runApp`.
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_prefKey);
+    if (saved != null && saved.trim().isNotEmpty) {
+      _baseUrl = normalizeBaseUrl(saved);
+    }
+  }
+
+  /// Persist a new backend URL. Returns false when [value] is not a valid URL.
+  static Future<bool> setBaseUrl(String value) async {
+    final normalized = normalizeBaseUrl(value);
+    final uri = Uri.tryParse(normalized);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return false;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKey, normalized);
+    _baseUrl = normalized;
+    return true;
+  }
+
+  /// Normalises user input: trims, adds a scheme when missing, drops trailing
+  /// slashes and an accidental `/api/v1` suffix.
+  static String normalizeBaseUrl(String raw) {
+    var value = raw.trim();
+    if (value.isEmpty) return defaultBaseUrl;
+    if (!value.contains('://')) value = 'http://$value';
+    while (value.endsWith('/')) {
+      value = value.substring(0, value.length - 1);
+    }
+    if (value.endsWith(_apiPrefix)) {
+      value = value.substring(0, value.length - _apiPrefix.length);
+    }
+    return value;
+  }
 
   static Map<String, String> get _defaultHeaders => {
         'Content-Type': 'application/json',

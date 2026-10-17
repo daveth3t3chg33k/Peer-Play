@@ -73,6 +73,7 @@ class VideoSource {
   final String movieId;
   final String quality;
   final String? magnetLink;
+  final String? streamUrl;
   final int fileSizeBytes;
   final String codec;
 
@@ -81,6 +82,7 @@ class VideoSource {
     required this.movieId,
     required this.quality,
     this.magnetLink,
+    this.streamUrl,
     required this.fileSizeBytes,
     required this.codec,
   });
@@ -91,10 +93,16 @@ class VideoSource {
       movieId: json['movie_id']?.toString() ?? '',
       quality: json['quality'] ?? '',
       magnetLink: json['magnet_link'],
+      streamUrl: json['stream_url'],
       fileSizeBytes: json['file_size_bytes'] ?? 0,
       codec: json['codec'] ?? '',
     );
   }
+
+  /// A source is playable when it carries either a magnet or a direct URL.
+  bool get isPlayable =>
+      (magnetLink ?? '').trim().isNotEmpty ||
+      (streamUrl ?? '').trim().isNotEmpty;
 
   String get fileSizeMB => '${(fileSizeBytes / 1048576).toStringAsFixed(0)} MB';
 }

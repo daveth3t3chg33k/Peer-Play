@@ -7,9 +7,11 @@ import 'screens/main_screen.dart';
 import 'screens/movie_detail_screen.dart';
 import 'screens/player_screen.dart';
 import 'services/auth_service.dart';
+import 'config/api.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiClient.init();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
